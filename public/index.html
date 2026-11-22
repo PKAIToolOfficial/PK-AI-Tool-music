@@ -55,7 +55,7 @@
           <p id="view-subtitle">Create songs and vocals in any world language</p>
         </div>
         <div class="top-actions">
-          <span class="pill" id="mode-pill">Standard Quality (10 Credits)</span>
+          <span class="pill" id="mode-pill">Standard Quality (10 Credits) · Free</span>
           <button type="button" id="reset-daily-btn" class="ghost-btn">Reset 50 Credits</button>
         </div>
       </header>
@@ -64,8 +64,22 @@
       <section id="view-create" class="view-section active">
         <div class="grid-two">
           <div class="panel">
+            <div class="label-row">
+              <label>Studio Mode &amp; Vocals</label>
+              <div style="display:flex; gap:12px; align-items:center; font-size:13px;">
+                <label style="margin:0; display:flex; gap:5px; align-items:center; cursor:pointer;">
+                  <input type="checkbox" id="custom-mode-toggle" checked />
+                  Custom Mode
+                </label>
+                <label style="margin:0; display:flex; gap:5px; align-items:center; cursor:pointer;">
+                  <input type="checkbox" id="instrumental-toggle" />
+                  Instrumental
+                </label>
+              </div>
+            </div>
+
             <div class="field-group">
-              <label for="track-language">Vocal / Song Language (Any Language)</label>
+              <label for="track-language">Vocal / Song Language (Any World Language)</label>
               <select id="track-language">
                 <option value="Auto / Any Language" selected>Auto Detect (Any World Language)</option>
                 <option value="English">English</option>
@@ -88,7 +102,7 @@
               <input type="text" id="track-title" placeholder="Enter song title in any language" />
             </div>
 
-            <div class="field-group">
+            <div class="field-group" id="lyrics-group">
               <div class="label-row">
                 <label for="track-lyrics">Lyrics</label>
                 <button type="button" id="fill-sample-lyrics" class="link-btn">Fill Sample Lyrics</button>
@@ -155,7 +169,7 @@
       <section id="view-library" class="view-section">
         <div class="panel">
           <h3>My Library</h3>
-          <p class="muted">All tracks generated in your studio session.</p>
+          <p class="muted">All generated tracks in your studio workspace. Play, extend, download, or remove tracks.</p>
           <div id="library-tracks" class="tracks-list mt-16"></div>
         </div>
       </section>
@@ -181,25 +195,56 @@
         <div class="grid-two">
           <div class="panel">
             <h3>Free Plan</h3>
-            <p class="muted">50 daily free credits, 2 tracks per generation, and ad-supported credits.</p>
+            <p class="muted">50 daily free credits, 2 tracks per generation, and ad-supported bonus credits.</p>
             <ul class="clean-list">
-              <li>50 Daily Credits</li>
+              <li>50 Daily Free Credits</li>
               <li>2 Tracks per Generation</li>
-              <li>Rewarded Ad Credits</li>
+              <li>Any World Language &amp; Studio Controls</li>
+              <li>Rewarded Ad Slot (+10 Credits)</li>
+            </ul>
+
+            <h3 class="mt-16">How Crypto Subscriptions &amp; Studio Work (Guide &amp; FAQ)</h3>
+            <ul class="clean-list">
+              <li><strong>Crypto Only:</strong> No credit or debit cards are used. Subscriptions are Monthly or Yearly via USDT, TRX, BTC, ETH, or BNB.</li>
+              <li><strong>2 Tracks Per Create:</strong> Every generation produces 2 variations so you can compare and pick your favorite.</li>
+              <li><strong>Any Language:</strong> Write lyrics or prompts in any language, set duration from 1 to 20 minutes, or toggle Instrumental mode.</li>
+              <li><strong>TxID Verification:</strong> Send payment to the wallet address for your chosen network, paste the TxID, and submit to activate credits.</li>
             </ul>
           </div>
 
           <div class="panel">
-            <h3>Paid Plan (Crypto Payment)</h3>
-            <p class="muted">Send payment to your configured wallet network and submit the transaction hash:</p>
+            <h3>Crypto Subscription (Monthly / Yearly Only)</h3>
+            <p class="muted">Select billing cycle and crypto network, send payment to the wallet, and submit your TxID.</p>
+
+            <div class="field-group mt-12">
+              <label for="billing-cycle">Subscription Cycle</label>
+              <select id="billing-cycle">
+                <option value="Monthly" selected>Monthly Plan (+500 Credits)</option>
+                <option value="Yearly">Yearly Plan (+2,000 Credits)</option>
+              </select>
+            </div>
+
+            <div class="field-group">
+              <label for="crypto-network">Crypto Network / Coin</label>
+              <select id="crypto-network">
+                <option value="USDT (ERC20)" selected>USDT (ERC20)</option>
+                <option value="TRX (TRC20)">TRX (TRC20)</option>
+                <option value="BTC">BTC</option>
+                <option value="ETH (ERC20)">ETH (ERC20)</option>
+                <option value="BNB (BEP20)">BNB (BEP20)</option>
+              </select>
+            </div>
+
             <div id="crypto-wallets-list" class="wallet-box">
               <div class="muted">Loading wallets from Railway...</div>
             </div>
+
             <div class="field-group mt-12">
               <label for="tx-hash">Transaction Hash / TxID</label>
-              <input type="text" id="tx-hash" placeholder="Paste TxID after sending crypto" />
+              <input type="text" id="tx-hash" placeholder="Paste TxID after sending crypto payment" />
             </div>
-            <button type="button" id="submit-crypto-btn" class="primary-btn">Record Payment TxID</button>
+
+            <button type="button" id="submit-crypto-btn" class="primary-btn">Verify &amp; Activate Crypto Plan</button>
             <p id="crypto-status" class="muted mt-12"></p>
           </div>
         </div>
