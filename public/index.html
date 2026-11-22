@@ -3,333 +3,640 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PK AI Tool Music — Studio Dashboard</title>
+  <title>PK AI Tool Music — Full AI Music, Speech &amp; Visual Studio</title>
   <link rel="stylesheet" href="/style.css" />
 </head>
-<body class="studio-body">
-  <div class="studio-shell">
+<body class="has-player">
+  <div class="app-shell">
     <!-- Left Sidebar -->
-    <aside class="studio-sidebar">
-      <div class="logo-lockup">
-        <svg class="pk-logo-svg" viewBox="0 0 44 44" width="44" height="44" aria-hidden="true">
-          <defs>
-            <linearGradient id="pkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#16a34a" />
-              <stop offset="60%" stop-color="#22c55e" />
-              <stop offset="100%" stop-color="#0ea5e9" />
-            </linearGradient>
-          </defs>
-          <rect x="2" y="2" width="40" height="40" rx="12" fill="url(#pkGrad)" />
-          <path d="M13 30V14h6.5c3.2 0 5.5 1.8 5.5 4.8 0 3-2.3 4.8-5.5 4.8H16.5V30H13zm3.5-9.3h2.8c1.3 0 2.2-.7 2.2-1.9s-.9-1.9-2.2-1.9h-2.8v3.8zM27.5 30V14H31v6.6l5-6.6h4.2l-5.5 7 5.8 9h-4.3l-3.8-6-1.4 1.7V30h-3.6z" fill="#ffffff" />
-        </svg>
+    <aside class="sidebar">
+      <div class="brand-lockup">
+        <div class="brand-logo" aria-hidden="true">PK</div>
         <div>
-          <div class="brand-title" id="brand-name">PK AI Tool Music</div>
-          <div class="brand-sub">Suno-Style AI Vocal &amp; Music Studio</div>
+          <div class="brand-name" id="brand-title">PK AI Tool Music</div>
+          <div class="brand-tagline">Green · White · Purple Studio</div>
         </div>
       </div>
 
-      <nav class="studio-nav">
-        <button class="nav-pill active" data-view="create">Create</button>
-        <button class="nav-pill" data-view="library">Library</button>
-        <button class="nav-pill" data-view="chat">Chat Assistant</button>
-        <button class="nav-pill" data-view="upgrade">Plans &amp; Crypto</button>
-        <button class="nav-pill" data-view="account">Login &amp; Verify</button>
-        <button class="nav-pill" data-view="railway">Railway Keys</button>
+      <nav class="side-nav" aria-label="Main Navigation">
+        <button type="button" class="side-link active" data-section="studio">
+          <span>Studio</span>
+          <span class="badge-green">AI</span>
+        </button>
+        <button type="button" class="side-link" data-section="library">
+          <span>Library &amp; Workspaces</span>
+        </button>
+        <button type="button" class="side-link" data-section="chat">
+          <span>Chat Assistant</span>
+        </button>
+        <button type="button" class="side-link" data-section="plans">
+          <span>Monthly &amp; Yearly Plans</span>
+          <span class="badge-purple">Crypto</span>
+        </button>
+        <button type="button" class="side-link" data-section="auth">
+          <span>Login &amp; Verification</span>
+        </button>
+        <button type="button" class="side-link" data-section="explore">
+          <span>Menu, Guides &amp; Articles</span>
+        </button>
+        <button type="button" class="side-link" data-section="keys">
+          <span>Railway Keys</span>
+        </button>
       </nav>
 
-      <div class="credit-card">
-        <div class="credit-row">
-          <span>Free Credits</span>
-          <strong id="credit-count">50 / 50</strong>
+      <div class="side-box">
+        <div class="between">
+          <strong style="font-size:13px;">Free Credits</strong>
+          <strong id="credits-display">50 / 50</strong>
         </div>
-        <div class="meter-bg">
-          <div id="credit-bar" class="meter-fill" style="width: 100%;"></div>
+        <div class="meter-track">
+          <div id="credits-meter" class="meter-fill" style="width: 100%;"></div>
         </div>
-        <small id="credit-hint">2 tracks per generation · Ads when empty</small>
+        <div class="muted">2 tracks per generation · Ads when empty</div>
       </div>
 
-      <div class="ad-card" id="free-ad-box">
-        <span class="tag-amber">AD · FREE CREDITS</span>
-        <p id="ad-info-text">Out of free credits? Watch a sponsor ad for +10 credits.</p>
-        <button type="button" id="claim-ad-credits-btn" class="btn-outline-green">
+      <div class="side-box purple-tint">
+        <span class="pill-ad">AD · FREE CREDITS</span>
+        <div class="muted" id="ad-status-text" style="margin-bottom:8px;">
+          Credits khatam ya kam hone par ad se +10 credits lein.
+        </div>
+        <button type="button" id="watch-ad-btn" class="btn-purple" style="width:100%;">
           Watch Ad (+10 Credits)
         </button>
       </div>
 
-      <div class="auth-mini-box" id="auth-mini-status">
-        <span class="dot-emerald"></span>
-        <span id="auth-status-label">Guest Session · Not Verified</span>
+      <div class="side-box">
+        <div class="muted" id="session-badge">Guest Session · Not Verified</div>
+        <button type="button" id="quick-login-btn" class="btn-soft mt-12" style="width:100%;">
+          Gmail / Phone / GitHub Login
+        </button>
       </div>
     </aside>
 
-    <!-- Main Studio Area -->
-    <main class="studio-main">
-      <header class="studio-header">
+    <!-- Main Content -->
+    <main class="main-area">
+      <header class="top-header">
         <div>
-          <h1 id="view-title">Create Track Studio</h1>
-          <p id="view-subtitle">Generate songs, vocals, and instrumentals in any world language</p>
+          <h1 id="main-heading">PK AI Tool Music Studio</h1>
+          <p id="main-subheading">Songs, Speech &amp; Visuals in any world language · Monthly &amp; Yearly Crypto Plans</p>
         </div>
-        <div class="header-badges">
-          <span class="badge-green" id="mode-pill">Standard (10 Credits) · Free</span>
-          <button type="button" id="reset-daily-btn" class="btn-soft">Reset 50 Credits</button>
+        <div class="header-actions">
+          <span class="badge-green" id="active-plan-badge">Free Plan</span>
+          <span class="badge-purple" id="gen-cost-badge">10 Credits / Create</span>
+          <button type="button" id="reset-credits-btn" class="btn-soft">Reset 50 Credits</button>
         </div>
       </header>
 
-      <!-- Low/Zero Credit Banner -->
-      <div id="low-credit-banner" class="alert-banner hidden">
+      <!-- Low/Zero Credit Ad & Upgrade Alert -->
+      <div id="out-of-credits-banner" class="alert-bar">
         <div>
-          <strong>Free Credits Low or Empty:</strong> Watch a sponsor ad for +10 credits or activate a Monthly / Yearly Crypto plan.
+          <strong>Free Credits Low or Empty:</strong> Watch a sponsor ad for +10 credits or choose a <strong>Monthly</strong> or <strong>Yearly</strong> Crypto Plan.
         </div>
-        <div class="banner-actions">
-          <button type="button" id="banner-ad-btn" class="btn-green-sm">Watch Ad (+10)</button>
-          <button type="button" id="banner-plans-btn" class="btn-soft">Crypto Plans</button>
+        <div class="flex-gap">
+          <button type="button" id="banner-ad-trigger" class="btn-green">Watch Ad (+10)</button>
+          <button type="button" id="banner-plan-trigger" class="btn-purple">Monthly &amp; Yearly Plans</button>
         </div>
       </div>
 
-      <!-- View 1: Create -->
-      <section id="view-create" class="view-panel active">
-        <div class="two-col">
-          <div class="card-surface">
-            <div class="toolbar-row">
-              <span class="section-label">Song &amp; Vocal Controls</span>
-              <div class="toggle-group">
-                <label class="check-chip">
-                  <input type="checkbox" id="custom-mode-toggle" checked />
-                  <span>Custom Mode</span>
-                </label>
-                <label class="check-chip">
-                  <input type="checkbox" id="instrumental-toggle" />
-                  <span>Instrumental</span>
-                </label>
-              </div>
+      <!-- SECTION 1: STUDIO (Songs / Speech / Visuals) -->
+      <section id="section-studio" class="view-section active">
+        <div class="studio-top-tabs" role="tablist">
+          <button type="button" class="studio-mode-btn active" data-studio-tab="songs">Songs</button>
+          <button type="button" class="studio-mode-btn" data-studio-tab="speech">Speech (BETA)</button>
+          <button type="button" class="studio-mode-btn" data-studio-tab="visuals">Visuals</button>
+        </div>
+
+        <!-- SUB-MODE A: SONGS -->
+        <div id="studio-songs" class="sub-mode-panel active">
+          <div class="sub-bar">
+            <div class="seg-group" role="group" aria-label="Simple or Advanced Mode">
+              <button type="button" class="seg-btn active" data-complexity="simple">Simple</button>
+              <button type="button" class="seg-btn" data-complexity="advanced">Advanced</button>
             </div>
 
-            <div class="form-field">
-              <label for="track-language">Vocal / Song Language (Any World Language)</label>
-              <select id="track-language">
-                <option value="Auto / Any Language" selected>Auto Detect (Any World Language)</option>
-                <option value="English">English</option>
-                <option value="Hindi">Hindi</option>
-                <option value="Urdu">Urdu</option>
-                <option value="Punjabi">Punjabi</option>
-                <option value="Spanish">Spanish</option>
-                <option value="Arabic">Arabic</option>
-                <option value="French">French</option>
-                <option value="German">German</option>
-                <option value="Japanese">Japanese</option>
-                <option value="Korean">Korean</option>
-                <option value="Portuguese">Portuguese</option>
-                <option value="Turkish">Turkish</option>
+            <div class="flex-gap">
+              <label class="mode-chip"><input type="checkbox" id="chk-custom-mode" checked /> Custom Mode</label>
+              <label class="mode-chip"><input type="checkbox" id="chk-instrumental" /> Instrumental</label>
+              <select id="song-model-select" style="width:auto;">
+                <option value="v6-studio">PK-Music v6 Studio</option>
+                <option value="v6-mini" selected>v6-mini</option>
+                <option value="v5.5-pro">v5.5 Pro</option>
               </select>
-            </div>
-
-            <div class="form-field">
-              <label for="track-title">Song Title</label>
-              <input type="text" id="track-title" placeholder="Enter song title in any language" />
-            </div>
-
-            <div class="form-field" id="lyrics-group">
-              <div class="label-split">
-                <label for="track-lyrics">Lyrics</label>
-                <button type="button" id="fill-sample-lyrics" class="link-emerald">Fill Sample Lyrics</button>
-              </div>
-              <textarea id="track-lyrics" rows="7" placeholder="Write lyrics or generate them in Chat Assistant..."></textarea>
-            </div>
-
-            <div class="form-field">
-              <label for="track-style">Music Style &amp; Production</label>
-              <input type="text" id="track-style" placeholder="e.g., studio vocals, acoustic guitar, synthwave, lo-fi, orchestral" />
             </div>
           </div>
 
-          <div class="card-surface">
-            <div class="form-field">
-              <label for="quality-preset">Quality Preset</label>
-              <select id="quality-preset">
-                <option value="standard" data-cost="10">Standard Quality (10 Credits · 2 Tracks)</option>
-                <option value="high" data-cost="20">High Studio Quality (20 Credits · 2 Tracks)</option>
-              </select>
-            </div>
-
-            <div class="form-field">
-              <label for="duration-select">Track / Recording Duration (1 to 20 Minutes)</label>
-              <select id="duration-select">
-                <option value="1">1 Minute</option>
-                <option value="2" selected>2 Minutes</option>
-                <option value="5">5 Minutes</option>
-                <option value="7">7 Minutes</option>
-                <option value="10">10 Minutes</option>
-                <option value="20">20 Minutes</option>
-              </select>
-            </div>
-
-            <div class="form-field">
-              <div class="label-split">
-                <label for="voice-originality">Voice Originality / Fidelity</label>
-                <strong id="voice-originality-val" class="text-emerald">85%</strong>
+          <div class="two-col">
+            <div class="card">
+              <div class="attach-row">
+                <button type="button" class="attach-btn" id="btn-add-audio">+ Audio (Upload/Record)</button>
+                <button type="button" class="attach-btn" id="btn-add-voice">+ Voice (My Voices)</button>
+                <button type="button" class="attach-btn" id="btn-add-inspo">+ Inspo / + Image</button>
               </div>
-              <input type="range" id="voice-originality" min="0" max="100" value="85" />
-              <small class="hint-text">Controls closeness to target vocal/reference tone</small>
+              <input type="file" id="hidden-media-input" accept="audio/*,image/*" style="display:none;" />
+              <div id="media-attach-note" class="muted field">No audio, voice, or image attached yet.</div>
+
+              <div class="field">
+                <label for="song-language">Vocal / Song Language (Any World Language)</label>
+                <select id="song-language">
+                  <option value="Auto Detect (Any World Language)" selected>Auto Detect (Any World Language)</option>
+                  <option value="Urdu">Urdu</option>
+                  <option value="Hindi">Hindi</option>
+                  <option value="English">English</option>
+                  <option value="Punjabi">Punjabi</option>
+                  <option value="Arabic">Arabic</option>
+                  <option value="Spanish">Spanish</option>
+                  <option value="French">French</option>
+                  <option value="Turkish">Turkish</option>
+                  <option value="Japanese">Japanese</option>
+                  <option value="Korean">Korean</option>
+                </select>
+              </div>
+
+              <div class="field" id="song-lyrics-field">
+                <div class="between" style="margin-bottom:5px;">
+                  <label for="song-lyrics" style="margin:0;">Lyrics</label>
+                  <button type="button" id="btn-sample-lyrics" class="btn-soft">Insert [Verse] &amp; [Chorus]</button>
+                </div>
+                <textarea id="song-lyrics" rows="6" placeholder="[Verse]&#10;Write your lyrics here, one line at a time&#10;Every line you add is a line we'll sing&#10;&#10;[Chorus]&#10;A chorus to repeat"></textarea>
+              </div>
+
+              <div class="field">
+                <label for="song-styles">Styles</label>
+                <input type="text" id="song-styles" placeholder="e.g., fast guitar, heavy beat, synthrock, acoustic, folk-fusion" />
+                <div class="tag-chips" id="quick-style-tags">
+                  <button type="button" class="style-tag" data-tag="fast guitar">fast guitar</button>
+                  <button type="button" class="style-tag" data-tag="heavy beat">heavy beat</button>
+                  <button type="button" class="style-tag" data-tag="synthrock">synthrock</button>
+                  <button type="button" class="style-tag" data-tag="high-fidelity sound">high-fidelity sound</button>
+                  <button type="button" class="style-tag" data-tag="acoustic vocal">acoustic vocal</button>
+                </div>
+              </div>
             </div>
 
-            <div class="form-field">
-              <label for="vocal-file">Upload Singer Voice / Reference Audio (1–20 Min)</label>
-              <input type="file" id="vocal-file" accept="audio/*" />
-              <small id="vocal-file-name" class="hint-text">No audio file selected</small>
-            </div>
+            <div class="card">
+              <h3>More Options &amp; Generation Controls</h3>
 
-            <button type="button" id="generate-btn" class="btn-primary-full">
-              Create (Generate 2 Tracks)
-            </button>
-            <p id="generate-status" class="status-note"></p>
+              <div class="accordion-box">
+                <div class="option-row">
+                  <strong>Vocal Gender</strong>
+                  <div class="flex-gap">
+                    <button type="button" class="btn-soft gender-pick active" data-gender="Auto">Auto</button>
+                    <button type="button" class="btn-soft gender-pick" data-gender="Male">Male</button>
+                    <button type="button" class="btn-soft gender-pick" data-gender="Female">Female</button>
+                  </div>
+                </div>
+
+                <div class="option-row">
+                  <strong>Duration (Custom / Auto · 1–20 Min)</strong>
+                  <div class="flex-gap">
+                    <select id="song-duration-mode" style="width:auto;">
+                      <option value="Auto" selected>Auto</option>
+                      <option value="Custom">Custom</option>
+                    </select>
+                    <select id="song-duration-min" style="width:auto;">
+                      <option value="1">1 Min</option>
+                      <option value="2" selected>2 Min</option>
+                      <option value="5">5 Min</option>
+                      <option value="8">8 Min</option>
+                      <option value="10">10 Min</option>
+                      <option value="20">20 Min</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="option-row">
+                  <strong>Max Mode</strong>
+                  <div class="flex-gap">
+                    <button type="button" class="btn-soft maxmode-pick active" data-max="Off">Off</button>
+                    <button type="button" class="btn-soft maxmode-pick" data-max="On">On</button>
+                  </div>
+                </div>
+
+                <div class="option-row">
+                  <strong>Personalize (My Taste)</strong>
+                  <div class="flex-gap">
+                    <button type="button" class="btn-soft pers-pick active" data-pers="Off">Off</button>
+                    <button type="button" class="btn-soft pers-pick" data-pers="On">On</button>
+                  </div>
+                </div>
+
+                <div class="option-row">
+                  <strong>Variety</strong>
+                  <select id="song-variety" style="width:auto;">
+                    <option value="Low">Low</option>
+                    <option value="Normal" selected>Normal</option>
+                    <option value="High">High</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="field">
+                <div class="between">
+                  <label for="slider-weirdness" style="margin:0;">Weirdness</label>
+                  <strong id="val-weirdness" class="badge-purple">50%</strong>
+                </div>
+                <input type="range" id="slider-weirdness" min="0" max="100" value="50" />
+              </div>
+
+              <div class="field">
+                <div class="between">
+                  <label for="slider-style-inf" style="margin:0;">Style Influence</label>
+                  <strong id="val-style-inf" class="badge-green">50%</strong>
+                </div>
+                <input type="range" id="slider-style-inf" min="0" max="100" value="50" />
+              </div>
+
+              <div class="field">
+                <div class="between">
+                  <label for="slider-originality" style="margin:0;">Voice Originality / Fidelity</label>
+                  <strong id="val-originality" class="badge-green">85%</strong>
+                </div>
+                <input type="range" id="slider-originality" min="0" max="100" value="85" />
+              </div>
+
+              <div class="field">
+                <label for="song-title-opt">Song Title (Optional)</label>
+                <input type="text" id="song-title-opt" placeholder="Song Title (Optional)" />
+              </div>
+
+              <div class="field">
+                <label for="song-workspace">Save to... (Workspace)</label>
+                <select id="song-workspace">
+                  <option value="Default Workspace" selected>Select Workspace · Default</option>
+                  <option value="Urdu & Folk Hits">Urdu &amp; Folk Hits</option>
+                  <option value="Studio Experiments">Studio Experiments</option>
+                  <option value="Commercial Releases">Commercial Releases</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label for="song-quality">Quality Preset</label>
+                <select id="song-quality">
+                  <option value="10" selected>Standard Quality (10 Credits · 2 Tracks)</option>
+                  <option value="20">High Studio Quality (20 Credits · 2 Tracks)</option>
+                </select>
+              </div>
+
+              <button type="button" id="btn-create-song" class="btn-primary-grad">
+                Create (Generate 2 Tracks)
+              </button>
+              <div id="song-create-status" class="muted mt-12"></div>
+            </div>
+          </div>
+
+          <div class="card mt-16">
+            <div class="between">
+              <h3>Recent Tracks</h3>
+              <span class="muted">2 variations per create · Play, Extend, Download, Delete</span>
+            </div>
+            <div id="recent-tracks-container" class="mt-12"></div>
           </div>
         </div>
 
-        <div class="card-surface mt-16">
-          <h3>Recent Tracks</h3>
-          <div id="recent-tracks" class="tracks-stack mt-12"></div>
+        <!-- SUB-MODE B: SPEECH (BETA) -->
+        <div id="studio-speech" class="sub-mode-panel">
+          <div class="two-col">
+            <div class="card">
+              <div class="between field">
+                <h3 style="margin:0;">Speech Studio <span class="badge-purple">BETA</span></h3>
+                <div class="seg-group">
+                  <button type="button" class="seg-btn active" data-speech-mode="simple">Simple</button>
+                  <button type="button" class="seg-btn" data-speech-mode="advanced">Advanced</button>
+                </div>
+              </div>
+
+              <div class="field">
+                <label for="speech-script">Script</label>
+                <textarea id="speech-script" rows="6" placeholder="Write or paste your speech in any language..."></textarea>
+              </div>
+
+              <div class="field">
+                <label for="speech-tone">Tone</label>
+                <input type="text" id="speech-tone" placeholder="e.g., calm narrator, energetic host, warm storyteller" />
+              </div>
+            </div>
+
+            <div class="card">
+              <h3>Speech Advanced Settings</h3>
+              <div class="accordion-box">
+                <div class="option-row">
+                  <strong>Vocal Gender</strong>
+                  <select id="speech-gender" style="width:auto;">
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                  </select>
+                </div>
+                <div class="option-row">
+                  <strong>Background Music</strong>
+                  <select id="speech-bg-music" style="width:auto;">
+                    <option value="Off">Off</option>
+                    <option value="On" selected>On</option>
+                  </select>
+                </div>
+                <div class="option-row">
+                  <strong>Variety</strong>
+                  <select id="speech-variety" style="width:auto;">
+                    <option value="Low">Low</option>
+                    <option value="Normal" selected>Normal</option>
+                    <option value="High">High</option>
+                  </select>
+                </div>
+              </div>
+
+              <button type="button" id="btn-create-speech" class="btn-primary-grad">
+                Create Speech
+              </button>
+              <div id="speech-status" class="muted mt-12"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUB-MODE C: VISUALS (Image / Video) -->
+        <div id="studio-visuals" class="sub-mode-panel">
+          <div class="two-col">
+            <div class="card">
+              <div class="between field">
+                <h3 style="margin:0;">Visuals Studio</h3>
+                <div class="seg-group">
+                  <button type="button" class="seg-btn active" id="vis-mode-image">Image</button>
+                  <button type="button" class="seg-btn" id="vis-mode-video">Video</button>
+                </div>
+              </div>
+
+              <div class="attach-row" style="grid-template-columns: repeat(2, 1fr);">
+                <button type="button" class="attach-btn" id="vis-add-audio">+ Audio</button>
+                <button type="button" class="attach-btn" id="vis-add-character">+ Character (Choose / Create)</button>
+              </div>
+
+              <div class="field">
+                <label for="visual-prompt">Visual Prompt</label>
+                <textarea id="visual-prompt" rows="4" placeholder="e.g., A lone piano in a sunflower field at golden hour / Slow push-in on a singer under a spotlight"></textarea>
+              </div>
+
+              <div class="flex-gap">
+                <span class="badge-purple" id="selected-character-badge">Character: None</span>
+                <button type="button" class="btn-soft" id="btn-style-guide">Style Guide</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3>Quality &amp; Frame Options</h3>
+              <div class="field">
+                <label for="visual-quality">Quality Preset</label>
+                <select id="visual-quality">
+                  <option value="Fast · 1K (1 credit)" data-cost="1">Fast · 1K · Quick drafts · 1 credit</option>
+                  <option value="Standard · 1K (25 credits)" data-cost="25" selected>Standard · 1K · Balanced quality · 25 credits</option>
+                  <option value="Max · 2K (50 credits)" data-cost="50">Max · 2K · Highest quality · 50 credits</option>
+                  <option value="Video Fast · 480p (15 credits/sec)" data-cost="15">Video Fast · 480p · Quick drafts · 15 credits/sec</option>
+                  <option value="Video Standard · 720p (30 credits/sec)" data-cost="30">Video Standard · 720p · Balanced quality · 30 credits/sec</option>
+                </select>
+              </div>
+
+              <div class="accordion-box">
+                <div class="option-row">
+                  <strong>Aspect Ratio</strong>
+                  <select id="visual-aspect" style="width:auto;">
+                    <option value="1:1" selected>1:1</option>
+                    <option value="16:9">16:9</option>
+                    <option value="9:16">9:16</option>
+                    <option value="4:3">4:3</option>
+                  </select>
+                </div>
+                <div class="option-row">
+                  <strong>Frames (Video)</strong>
+                  <div class="flex-gap">
+                    <button type="button" class="btn-soft" id="btn-start-frame">Start frame</button>
+                    <button type="button" class="btn-soft" id="btn-end-frame">End frame</button>
+                    <button type="button" class="btn-soft" id="btn-ref-frame">Reference</button>
+                  </div>
+                </div>
+              </div>
+
+              <button type="button" id="btn-create-visual" class="btn-primary-grad">
+                Create Visual
+              </button>
+              <div id="visual-status" class="muted mt-12"></div>
+            </div>
+          </div>
         </div>
       </section>
 
-      <!-- View 2: Library -->
-      <section id="view-library" class="view-panel">
-        <div class="card-surface">
-          <h3>My Library</h3>
-          <p class="hint-text">Play, extend, download, or delete tracks in your studio library.</p>
-          <div id="library-tracks" class="tracks-stack mt-16"></div>
+      <!-- SECTION 2: LIBRARY & WORKSPACES -->
+      <section id="section-library" class="view-section">
+        <div class="card">
+          <div class="between field">
+            <div class="flex-gap">
+              <select id="lib-filter-select" style="width:auto;">
+                <option value="all" selected>My Songs · All</option>
+                <option value="liked">Liked Only</option>
+                <option value="instrumental">Instrumental</option>
+                <option value="vocal">Vocal</option>
+              </select>
+              <select id="lib-workspace-select" style="width:auto;">
+                <option value="all" selected>All Workspaces</option>
+                <option value="Default Workspace">Default Workspace</option>
+                <option value="Urdu & Folk Hits">Urdu &amp; Folk Hits</option>
+                <option value="Studio Experiments">Studio Experiments</option>
+                <option value="Commercial Releases">Commercial Releases</option>
+              </select>
+            </div>
+            <input type="text" id="lib-search-input" placeholder="Search tracks by title or style..." style="max-width:260px;" />
+          </div>
+
+          <div id="library-tracks-container"></div>
         </div>
       </section>
 
-      <!-- View 3: Chat Assistant -->
-      <section id="view-chat" class="view-panel">
-        <div class="card-surface">
+      <!-- SECTION 3: CHAT ASSISTANT -->
+      <section id="section-chat" class="view-section">
+        <div class="card">
           <h3>PK AI Tool Music Chat Assistant</h3>
-          <div id="chat-messages" class="chat-feed">
-            <div class="chat-msg bot">
-              Welcome! Tell me your song idea, mood, and language, and I will write lyrics, hooks, and style prompts.
+          <p class="muted">Lyrics, hooks, titles, aur style prompts kisi bhi zuban mein banwayein aur seedha studio mein bhejein.</p>
+          <div id="assistant-log" class="mt-12" style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:10px;border:1px solid var(--border-light);border-radius:12px;background:#f9fdfb;">
+            <div class="track-card">
+              <div><strong>Assistant:</strong> Apna song idea, mood, aur zuban likhein — main lyrics aur style prompt bana dunga.</div>
             </div>
           </div>
-          <div class="chat-bar">
-            <input type="text" id="chat-input" placeholder="Ask for lyrics, hooks, or music styles in any language..." />
-            <button type="button" id="chat-send-btn" class="btn-green-sm">Send</button>
+          <div class="flex-gap mt-12">
+            <input type="text" id="assistant-prompt-input" placeholder="Ask for lyrics, hooks, or music styles in any language..." style="flex:1;" />
+            <button type="button" id="assistant-send-btn" class="btn-green">Send</button>
           </div>
         </div>
       </section>
 
-      <!-- View 4: Plans & Crypto -->
-      <section id="view-upgrade" class="view-panel">
+      <!-- SECTION 4: MONTHLY & YEARLY PLANS (Crypto) -->
+      <section id="section-plans" class="view-section">
+        <div class="card field">
+          <div class="between">
+            <div>
+              <h2 style="margin:0;">Monthly &amp; Yearly Subscription Plans</h2>
+              <p class="muted" style="margin:4px 0 0;">Dono (Monthly aur Yearly) plans available — direct Crypto wallet payment &amp; TxID verification.</p>
+            </div>
+            <div class="seg-group">
+              <button type="button" class="seg-btn active" id="cycle-toggle-monthly">Monthly</button>
+              <button type="button" class="seg-btn" id="cycle-toggle-yearly">Yearly (Save up to 20%)</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="three-col">
+          <div class="card">
+            <span class="badge-green">FREE</span>
+            <h3 class="mt-12">Free Plan</h3>
+            <div style="font-size:24px;font-weight:800;">$0 <span class="muted">/ month</span></div>
+            <p class="muted">50 free credits, 2 tracks per generation, aur credits khatam hone par ad se +10 credits.</p>
+            <button type="button" class="btn-soft mt-12" style="width:100%;" id="select-free-plan">Current Free Tier</button>
+          </div>
+
+          <div class="card" style="border-color:var(--green);">
+            <span class="badge-green">MOST POPULAR</span>
+            <h3 class="mt-12">Creator / Pro Plan</h3>
+            <div style="font-size:24px;font-weight:800;" id="pro-price-label">$8 <span class="muted">/ month</span></div>
+            <p class="muted" id="pro-sub-note">Billed Monthly · +500 Credits per cycle, stems, custom voice &amp; commercial rights.</p>
+            <button type="button" class="btn-green mt-12" style="width:100%;" onclick="focusCryptoPlan('Creator / Pro', 'Monthly')">Choose Monthly</button>
+            <button type="button" class="btn-purple mt-12" style="width:100%;" onclick="focusCryptoPlan('Creator / Pro', 'Yearly')">Choose Yearly</button>
+          </div>
+
+          <div class="card" style="border-color:var(--purple);">
+            <span class="badge-purple">BEST VALUE · STUDIO</span>
+            <h3 class="mt-12">Premier &amp; Studio Plan</h3>
+            <div style="font-size:24px;font-weight:800;" id="prem-price-label">$24 <span class="muted">/ month</span></div>
+            <p class="muted" id="prem-sub-note">Billed Monthly or Yearly · +2,000 Credits, Visuals, MIDI/Stem tools &amp; priority queue.</p>
+            <button type="button" class="btn-green mt-12" style="width:100%;" onclick="focusCryptoPlan('Premier Studio', 'Monthly')">Choose Monthly</button>
+            <button type="button" class="btn-purple mt-12" style="width:100%;" onclick="focusCryptoPlan('Premier Studio', 'Yearly')">Choose Yearly</button>
+          </div>
+        </div>
+
+        <div class="card mt-16">
+          <h3>Crypto Payment &amp; TxID Activation (Monthly &amp; Yearly)</h3>
+          <div class="two-col mt-12">
+            <div>
+              <div class="field">
+                <label for="crypto-plan-cycle">Billing Cycle (Monthly / Yearly)</label>
+                <select id="crypto-plan-cycle">
+                  <option value="Monthly" selected>Monthly Plan (+500 Credits)</option>
+                  <option value="Yearly">Yearly Plan (+2,000 Credits)</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="crypto-network-sel">Crypto Network / Coin</label>
+                <select id="crypto-network-sel">
+                  <option value="USDT (ERC20)" selected>USDT (ERC20)</option>
+                  <option value="TRX (TRC20)">TRX (TRC20)</option>
+                  <option value="BTC">BTC</option>
+                  <option value="ETH (ERC20)">ETH (ERC20)</option>
+                  <option value="BNB (BEP20)">BNB (BEP20)</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="crypto-txid-input">Transaction Hash / TxID</label>
+                <input type="text" id="crypto-txid-input" placeholder="Paste TxID after sending crypto payment" />
+              </div>
+              <button type="button" id="crypto-activate-btn" class="btn-primary-grad">
+                Verify &amp; Activate Crypto Plan
+              </button>
+              <div id="crypto-activate-msg" class="muted mt-12"></div>
+            </div>
+
+            <div class="side-box">
+              <strong>Configured Crypto Wallets (Railway Variables)</strong>
+              <div id="wallet-addresses-box" class="mt-12" style="display:flex;flex-direction:column;gap:6px;word-break:break-all;"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 5: LOGIN & VERIFICATION -->
+      <section id="section-auth" class="view-section">
         <div class="two-col">
-          <div class="card-surface">
-            <h3>Free Plan &amp; Guide</h3>
-            <p class="hint-text">50 daily free credits, 2 tracks per generation, and rewarded ads when credits run low.</p>
-            <ul class="info-list">
-              <li><strong>Free Tier:</strong> 50 daily credits, 2 variations per create, rewarded ad top-ups (+10 credits).</li>
-              <li><strong>Monthly &amp; Yearly Crypto Plans:</strong> Paid directly via USDT, TRX, BTC, ETH, or BNB with TxID verification.</li>
-              <li><strong>Full Studio Controls:</strong> Any world language, Instrumental toggle, 1–20 min duration, and voice originality slider.</li>
-            </ul>
+          <div class="card">
+            <h3>Sign In &amp; Verification</h3>
+            <p class="muted">Gmail, Phone OTP, ya GitHub verification se apna studio account verify karein.</p>
+
+            <div class="seg-group field mt-12">
+              <button type="button" class="seg-btn active auth-method-btn" data-method="Gmail">Gmail</button>
+              <button type="button" class="seg-btn auth-method-btn" data-method="Phone OTP">Phone OTP</button>
+              <button type="button" class="seg-btn auth-method-btn" data-method="GitHub">GitHub</button>
+            </div>
+
+            <div class="field">
+              <label for="auth-user-input" id="auth-user-label">Gmail Address</label>
+              <input type="text" id="auth-user-input" placeholder="user@gmail.com" />
+            </div>
+
+            <div class="field">
+              <label for="auth-otp-input" id="auth-otp-label">Verification Code / Token</label>
+              <input type="text" id="auth-otp-input" placeholder="Enter verification code or token" />
+            </div>
+
+            <button type="button" id="auth-submit-btn" class="btn-primary-grad">
+              Verify &amp; Continue
+            </button>
+            <div id="auth-feedback" class="muted mt-12"></div>
           </div>
 
-          <div class="card-surface">
-            <h3>Crypto Subscription (Monthly / Yearly Only)</h3>
-            <p class="hint-text">Choose billing cycle and network, send to the wallet, and verify your TxID.</p>
-
-            <div class="form-field mt-12">
-              <label for="billing-cycle">Subscription Cycle</label>
-              <select id="billing-cycle">
-                <option value="Monthly" selected>Monthly Plan (+500 Credits)</option>
-                <option value="Yearly">Yearly Plan (+2,000 Credits)</option>
-              </select>
+          <div class="card">
+            <h3>Supported Login &amp; Identity Methods</h3>
+            <p class="muted">
+              Google, Apple, Phone, Discord, Facebook, Microsoft, aur GitHub sign-in/verification ke liye UI aur server route tayar hain. Live global SMS/OAuth ke liye Railway Variables mein provider credentials set kiye ja sakte hain.
+            </p>
+            <div class="flex-gap mt-12">
+              <span class="badge-green">Gmail Verified</span>
+              <span class="badge-purple">Phone OTP</span>
+              <span class="badge-green">GitHub</span>
+              <span class="badge-purple">Google / Apple / Discord</span>
             </div>
-
-            <div class="form-field">
-              <label for="crypto-network">Crypto Network / Coin</label>
-              <select id="crypto-network">
-                <option value="USDT (ERC20)" selected>USDT (ERC20)</option>
-                <option value="TRX (TRC20)">TRX (TRC20)</option>
-                <option value="BTC">BTC</option>
-                <option value="ETH (ERC20)">ETH (ERC20)</option>
-                <option value="BNB (BEP20)">BNB (BEP20)</option>
-              </select>
-            </div>
-
-            <div id="crypto-wallets-list" class="wallet-box">
-              <div class="hint-text">Loading wallets from Railway...</div>
-            </div>
-
-            <div class="form-field mt-12">
-              <label for="tx-hash">Transaction Hash / TxID</label>
-              <input type="text" id="tx-hash" placeholder="Paste TxID after sending crypto payment" />
-            </div>
-
-            <button type="button" id="submit-crypto-btn" class="btn-primary-full">Verify &amp; Activate Crypto Plan</button>
-            <p id="crypto-status" class="status-note"></p>
           </div>
         </div>
       </section>
 
-      <!-- View 5: Login & Verification -->
-      <section id="view-account" class="view-panel">
-        <div class="two-col">
-          <div class="card-surface">
-            <h3>Sign In &amp; Account Verification</h3>
-            <p class="hint-text">Verify via Gmail, Phone OTP, or GitHub to link your studio session.</p>
-
-            <div class="auth-tabs mt-12">
-              <button type="button" class="auth-tab active" data-auth="Gmail">Gmail</button>
-              <button type="button" class="auth-tab" data-auth="Phone">Phone OTP</button>
-              <button type="button" class="auth-tab" data-auth="GitHub">GitHub</button>
-            </div>
-
-            <div class="form-field mt-12">
-              <label for="auth-identifier" id="auth-id-label">Gmail Address</label>
-              <input type="text" id="auth-identifier" placeholder="you@gmail.com" />
-            </div>
-
-            <div class="form-field">
-              <label for="auth-code" id="auth-code-label">Verification Code / OAuth Token</label>
-              <input type="text" id="auth-code" placeholder="Enter 6-digit code or token" />
-            </div>
-
-            <button type="button" id="auth-verify-btn" class="btn-primary-full">Verify &amp; Sign In</button>
-            <p id="auth-result-msg" class="status-note"></p>
-          </div>
-
-          <div class="card-surface">
-            <h3>Verification Checklist</h3>
-            <ul class="info-list">
-              <li><strong>Gmail Verification:</strong> Confirms user email address for account recovery and plan receipts.</li>
-              <li><strong>Phone Verification:</strong> Confirms mobile number via SMS/OTP code.</li>
-              <li><strong>GitHub Verification:</strong> Links developer/creator GitHub username or OAuth token.</li>
-            </ul>
+      <!-- SECTION 6: MENU, GUIDES & ARTICLES -->
+      <section id="section-explore" class="view-section">
+        <div class="card field">
+          <h2>Products, Resources &amp; Full Platform Guide</h2>
+          <p class="muted">Suno-style complete menu structure aur platform guides / articles ek jagah.</p>
+          <div class="flex-gap mt-12" id="article-tabs">
+            <button type="button" class="btn-green article-btn" data-article="products">Products</button>
+            <button type="button" class="btn-soft article-btn" data-article="guides">How It Works &amp; FAQ</button>
+            <button type="button" class="btn-soft article-btn" data-article="plans-guide">Monthly &amp; Yearly Guide</button>
+            <button type="button" class="btn-soft article-btn" data-article="policies">Terms, Privacy &amp; Safety</button>
           </div>
         </div>
-      </section>
 
-      <!-- View 6: Railway Keys -->
-      <section id="view-railway" class="view-panel">
-        <div class="card-surface">
-          <h3>GitHub + Railway Environment Status</h3>
-          <p class="hint-text">
-            Code is deployed from GitHub while secret API keys and crypto wallets are set in Railway <strong>Variables</strong>.
+        <div id="article-content-card" class="card">
+          <h3>Products Overview</h3>
+          <p class="muted">
+            <strong>Studio (Songs):</strong> Generate vocal tracks or instrumentals in any world language with Simple/Advanced controls, Lyrics tags ([Verse], [Chorus]), Styles, Vocal Gender, Duration (1–20 min), Weirdness, Style Influence, and Voice Originality.<br /><br />
+            <strong>Speech (BETA):</strong> Convert scripts into natural speech with tone, gender, background music toggle, and variety controls.<br /><br />
+            <strong>Visuals (Image &amp; Video):</strong> Create cover art, scenes, or short video clips with Character selection, Style Guide, Aspect Ratio, and frame controls.<br /><br />
+            <strong>Library &amp; Workspaces:</strong> Organize tracks into workspaces, play, extend, download, share, or delete.
           </p>
-          <div id="env-status-list" class="env-grid mt-16"></div>
+        </div>
+      </section>
+
+      <!-- SECTION 7: RAILWAY KEYS -->
+      <section id="section-keys" class="view-section">
+        <div class="card">
+          <h3>GitHub + Railway Environment Variables</h3>
+          <p class="muted">Code GitHub se deploy hota hai aur secret API keys / wallets Railway <strong>Variables</strong> mein set hote hain.</p>
+          <div id="railway-keys-grid" class="three-col mt-16"></div>
         </div>
       </section>
     </main>
   </div>
 
   <!-- Bottom Audio Player -->
-  <footer class="studio-player">
-    <audio id="audio-element" controls style="display: none;"></audio>
-    <div class="player-meta">
-      <strong id="player-title">No track selected</strong>
-      <span id="player-style" class="hint-text">Select a track to play</span>
+  <footer class="bottom-player" aria-label="Audio Player">
+    <div>
+      <strong id="player-track-title">No track selected</strong>
+      <div id="player-track-meta" class="muted">Select a track from Recent Tracks or Library to play</div>
     </div>
-    <div class="player-bar-controls">
-      <button type="button" id="play-toggle-btn" class="btn-green-sm">Play / Pause</button>
-      <input type="range" id="player-seek" min="0" max="100" value="0" />
-      <span id="player-time">00:00 / 02:00</span>
+    <div class="player-seek-wrap">
+      <button type="button" id="player-play-btn" class="btn-green">Play / Pause</button>
+      <input type="range" id="player-seek-bar" min="0" max="100" value="0" />
+      <span id="player-clock" class="muted">00:00 / 02:00</span>
     </div>
+    <audio id="player-audio-el" style="display:none;"></audio>
   </footer>
 
   <script src="/app.js"></script>
