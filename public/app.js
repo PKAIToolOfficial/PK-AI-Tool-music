@@ -1,619 +1,723 @@
 const state = {
+  token: localStorage.getItem("pk_session_token") || "",
   credits: 50,
-  dailyLimit: 50,
+  maxCredits: 50,
+  plan: "Free",
+  billingCycle: "None",
+  verified: false,
+  authMethod: null,
+  userIdentifier: null,
   tracks: [],
-  currentTrack: null,
-  config: null,
-  authMethod: 'Gmail',
-  userSession: null,
-  subscription: {
-    plan: 'Free',
-    billingCycle: null,
-    network: null,
-    lastTxId: null,
-    verifiedAt: null
-  }
+  activeTrackId: null,
+  selectedGender: "Auto",
+  selectedMaxMode: "Off",
+  selectedPersonalize: "Off",
+  selectedCharacter: "None",
+  attachedMedia: "",
+  authMethodTab: "Gmail",
+  planCycleTab: "Monthly",
+  chatHistory: [],
+  providers: null,
+  wallets: {}
 };
 
-const els = {
-  brandName: document.getElementById('brand-name'),
-  navBtns: document.querySelectorAll('.nav-pill'),
-  views: document.querySelectorAll('.view-panel'),
-  viewTitle: document.getElementById('view-title'),
-  viewSubtitle: document.getElementById('view-subtitle'),
-  creditCount: document.getElementById('credit-count'),
-  creditBar: document.getElementById('credit-bar'),
-  modePill: document.getElementById('mode-pill'),
-  resetDailyBtn: document.getElementById('reset-daily-btn'),
-  claimAdCreditsBtn: document.getElementById('claim-ad-credits-btn'),
-  adInfoText: document.getElementById('ad-info-text'),
-  lowCreditBanner: document.getElementById('low-credit-banner'),
-  bannerAdBtn: document.getElementById('banner-ad-btn'),
-  bannerPlansBtn: document.getElementById('banner-plans-btn'),
-
-  authStatusLabel: document.getElementById('auth-status-label'),
-  authTabs: document.querySelectorAll('.auth-tab'),
-  authIdLabel: document.getElementById('auth-id-label'),
-  authIdentifier: document.getElementById('auth-identifier'),
-  authCodeLabel: document.getElementById('auth-code-label'),
-  authCode: document.getElementById('auth-code'),
-  authVerifyBtn: document.getElementById('auth-verify-btn'),
-  authResultMsg: document.getElementById('auth-result-msg'),
-
-  customModeToggle: document.getElementById('custom-mode-toggle'),
-  instrumentalToggle: document.getElementById('instrumental-toggle'),
-  lyricsGroup: document.getElementById('lyrics-group'),
-  trackLanguage: document.getElementById('track-language'),
-  trackTitle: document.getElementById('track-title'),
-  trackLyrics: document.getElementById('track-lyrics'),
-  trackStyle: document.getElementById('track-style'),
-  fillSampleLyrics: document.getElementById('fill-sample-lyrics'),
-  qualityPreset: document.getElementById('quality-preset'),
-  durationSelect: document.getElementById('duration-select'),
-  voiceOriginality: document.getElementById('voice-originality'),
-  voiceOriginalityVal: document.getElementById('voice-originality-val'),
-  vocalFile: document.getElementById('vocal-file'),
-  vocalFileName: document.getElementById('vocal-file-name'),
-  generateBtn: document.getElementById('generate-btn'),
-  generateStatus: document.getElementById('generate-status'),
-  recentTracks: document.getElementById('recent-tracks'),
-  libraryTracks: document.getElementById('library-tracks'),
-
-  chatMessages: document.getElementById('chat-messages'),
-  chatInput: document.getElementById('chat-input'),
-  chatSendBtn: document.getElementById('chat-send-btn'),
-
-  billingCycle: document.getElementById('billing-cycle'),
-  cryptoNetwork: document.getElementById('crypto-network'),
-  cryptoWalletsList: document.getElementById('crypto-wallets-list'),
-  txHash: document.getElementById('tx-hash'),
-  verifyCryptoBtn: document.getElementById('submit-crypto-btn'),
-  cryptoStatus: document.getElementById('crypto-status'),
-  envStatusList: document.getElementById('env-status-list'),
-
-  audioEl: document.getElementById('audio-element'),
-  playerTitle: document.getElementById('player-title'),
-  playerStyle: document.getElementById('player-style'),
-  playToggleBtn: document.getElementById('play-toggle-btn'),
-  playerSeek: document.getElementById('player-seek'),
-  playerTime: document.getElementById('player-time')
+const apiHeaders = () => {
+  const headers = { "Content-Type": "application/json" };
+  if (state.token) headers["x-session-token"] = state.token;
+  return headers;
 };
 
-const viewMeta = {
-  create: {
-    title: 'Create Track Studio',
-    subtitle: 'Generate songs, vocals, and instrumentals in any world language'
-  },
-  library: {
-    title: 'My Library',
-    subtitle: 'All generated tracks in your studio library'
-  },
-  chat: {
-    title: 'Chat Assistant',
-    subtitle: 'Lyrics, hooks, and production style prompts in any language'
-  },
-  upgrade: {
-    title: 'Plans & Crypto',
-    subtitle: 'Monthly & Yearly plans via direct Crypto wallet payment & TxID verification'
-  },
-  account: {
-    title: 'Login & Verification',
-    subtitle: 'Gmail, Phone OTP, and GitHub account verification'
-  },
-  railway: {
-    title: 'Railway Keys',
-    subtitle: 'Environment variable configuration status from Railway'
+async function apiFetch(url, options = {}) {
+  const res = await fetch(url, {
+    ...options,
+    headers: { ...apiHeaders(), ...(options.headers || {}) }
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || `Request failed (${res.status})`);
   }
-};
-
-function saveLocalState() {
-  localStorage.setItem(
-    'pk_ai_tool_music_state',
-    JSON.stringify({
-      credits: state.credits,
-      dailyLimit: state.dailyLimit,
-      tracks: state.tracks,
-      userSession: state.userSession,
-      subscription: state.subscription
-    })
-  );
+  return data;
 }
 
-function loadLocalState() {
-  try {
-    const raw = localStorage.getItem('pk_ai_tool_music_state');
-    if (!raw) return;
-    const parsed = JSON.parse(raw);
-    if (typeof parsed.credits === 'number') state.credits = parsed.credits;
-    if (typeof parsed.dailyLimit === 'number') state.dailyLimit = parsed.dailyLimit;
-    if (Array.isArray(parsed.tracks)) state.tracks = parsed.tracks;
-    if (parsed.userSession) state.userSession = parsed.userSession;
-    if (parsed.subscription) state.subscription = { ...state.subscription, ...parsed.subscription };
-  } catch (_) {}
-}
+function updateCreditUI() {
+  const pct = Math.max(0, Math.min(100, Math.round((state.credits / Math.max(1, state.maxCredits)) * 100)));
+  const disp = document.getElementById("credits-display");
+  const meter = document.getElementById("credits-meter");
+  const banner = document.getElementById("out-of-credits-banner");
+  const planBadge = document.getElementById("active-plan-badge");
+  const sessionBadge = document.getElementById("session-badge");
 
-function getSelectedCost() {
-  const opt = els.qualityPreset.options[els.qualityPreset.selectedIndex];
-  return Number(opt?.dataset?.cost || 10);
-}
+  if (disp) disp.textContent = `${state.credits} / ${state.maxCredits}`;
+  if (meter) meter.style.width = `${pct}%`;
+  if (banner) banner.classList.toggle("show", state.credits <= 10);
 
-function renderAuthStatus() {
-  if (state.userSession?.verified) {
-    els.authStatusLabel.textContent = `${state.userSession.method}: ${state.userSession.identifier}`;
-  } else {
-    els.authStatusLabel.textContent = 'Guest Session · Not Verified';
+  if (planBadge) {
+    planBadge.textContent =
+      state.billingCycle && state.billingCycle !== "None"
+        ? `${state.plan} (${state.billingCycle})`
+        : `${state.plan} Plan`;
+  }
+
+  if (sessionBadge) {
+    sessionBadge.textContent = state.verified
+      ? `Verified · ${state.authMethod}: ${state.userIdentifier}`
+      : "Guest Session · Not Verified";
   }
 }
 
-function renderCredits() {
-  els.creditCount.textContent = `${state.credits} / ${state.dailyLimit}`;
-  const pct = Math.max(0, Math.min(100, (state.credits / Math.max(1, state.dailyLimit)) * 100));
-  els.creditBar.style.width = `${pct}%`;
-
-  const cost = getSelectedCost();
-  const qText = els.qualityPreset.value === 'high' ? 'High Quality' : 'Standard';
-  const planBadge =
-    state.subscription.plan === 'Pro Crypto'
-      ? ` · ${state.subscription.billingCycle || 'Active'}`
-      : ' · Free';
-  els.modePill.textContent = `${qText} (${cost} Credits)${planBadge}`;
-
-  if (els.lowCreditBanner) {
-    els.lowCreditBanner.classList.toggle('hidden', state.credits >= cost);
+function renderWallets() {
+  const box = document.getElementById("wallet-addresses-box");
+  if (!box) return;
+  const entries = Object.entries(state.wallets || {});
+  if (!entries.length) {
+    box.innerHTML = `<div class="muted">Set WALLET_USDT_ERC20, WALLET_TRX_TRC20, WALLET_BTC, WALLET_ETH_ERC20, or WALLET_BNB_BEP20 in Railway Variables.</div>`;
+    return;
   }
+  box.innerHTML = entries
+    .map(
+      ([net, addr]) => `
+      <div style="padding:8px 10px;border-radius:8px;background:#ffffff;border:1px solid var(--border-light);">
+        <strong style="font-size:12px;">${escapeHtml(net)}</strong>
+        <div class="muted" style="font-size:12px;">${
+          addr ? escapeHtml(addr) : "Not configured in Railway Variables yet"
+        }</div>
+      </div>`
+    )
+    .join("");
 }
 
-function switchView(viewName) {
-  els.navBtns.forEach((b) => b.classList.toggle('active', b.dataset.view === viewName));
-  els.views.forEach((v) => v.classList.toggle('active', v.id === `view-${viewName}`));
-  const meta = viewMeta[viewName] || viewMeta.create;
-  els.viewTitle.textContent = meta.title;
-  els.viewSubtitle.textContent = meta.subtitle;
+function renderRailwayKeys() {
+  const grid = document.getElementById("railway-keys-grid");
+  if (!grid) return;
+  const d = state.providers?.details || {};
+  const items = [
+    { name: "GROQ_API_KEY", active: d.groq, role: "Fast Lyrics, Chat & Prompt LLM" },
+    { name: "OPENAI_API_KEY", active: d.openai, role: "LLM, TTS Speech & Image Generation" },
+    { name: "GEMINI_API_KEY", active: d.gemini, role: "Gemini Lyrics & Studio Assistant" },
+    { name: "ELEVENLABS_API_KEY", active: d.elevenlabs, role: "Voice & Speech Provider Key" },
+    { name: "FISH_API_KEY", active: d.fish, role: "Speech / Audio Synthesis Key" },
+    { name: "REPLICATE_API_TOKEN", active: d.replicate, role: "Music / Audio / Visual Models" }
+  ];
+
+  grid.innerHTML = items
+    .map(
+      (k) => `
+      <div class="card">
+        <div class="between">
+          <strong style="font-size:13px;">${escapeHtml(k.name)}</strong>
+          <span class="${k.active ? "badge-green" : "badge-purple"}">${k.active ? "Set on Server" : "Not Set"}</span>
+        </div>
+        <p class="muted mt-12">${escapeHtml(k.role)}</p>
+      </div>`
+    )
+    .join("");
 }
 
-function appendChat(role, text) {
-  const div = document.createElement('div');
-  div.className = `chat-msg ${role}`;
-  div.textContent = text;
-  els.chatMessages.appendChild(div);
-  els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
+function escapeHtml(str) {
+  return String(str || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
 }
 
-function downloadTrack(track) {
-  if (!track.audioUrl) return;
-  const link = document.createElement('a');
-  link.href = track.audioUrl;
-  link.download = `${(track.title || 'pk-ai-track').replace(/\s+/g, '-').toLowerCase()}.mp3`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
+function renderTrackList(containerId, list) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
 
-function extendTrack(track) {
-  switchView('create');
-  els.trackTitle.value = `${track.title.replace(/\s*\(Take \d+\)$/i, '')} (Extended)`;
-  if (track.style) els.trackStyle.value = track.style;
-  if (track.language && els.trackLanguage) els.trackLanguage.value = track.language;
-  if (track.lyrics) els.trackLyrics.value = `${track.lyrics}\n\n[Outro / Extended]\n`;
-  els.generateStatus.textContent = `Loaded "${track.title}" into Create for extension.`;
-}
-
-function deleteTrack(trackId) {
-  state.tracks = state.tracks.filter((t) => t.id !== trackId);
-  if (state.currentTrack?.id === trackId) {
-    state.currentTrack = null;
-    els.audioEl.removeAttribute('src');
-    els.playerTitle.textContent = 'No track selected';
-    els.playerStyle.textContent = 'Select a track to play';
-  }
-  saveLocalState();
-  renderAllTracks();
-}
-
-function renderTrackList(container, list) {
   if (!list.length) {
-    container.innerHTML = `<div class="hint-text">No tracks generated yet.</div>`;
+    container.innerHTML = `<div class="muted">No tracks yet. Create a song or speech track in Studio.</div>`;
     return;
   }
 
-  container.innerHTML = '';
-  list.forEach((track) => {
-    const card = document.createElement('div');
-    card.className = 'track-card';
-
-    const info = document.createElement('div');
-    const titleEl = document.createElement('strong');
-    titleEl.textContent = track.title;
-    const metaEl = document.createElement('div');
-    metaEl.className = 'hint-text';
-    const modeTag = track.instrumental ? 'Instrumental' : 'Vocal';
-    metaEl.textContent = `${track.language || 'Any Language'} · ${modeTag} · ${track.style || 'Studio'} · ${track.durationMinutes || 2} min · Originality ${track.voiceOriginality ?? 85}% · ${track.provider || 'api'}`;
-    info.appendChild(titleEl);
-    info.appendChild(metaEl);
-
-    const actions = document.createElement('div');
-    actions.style.display = 'flex';
-    actions.style.gap = '6px';
-    actions.style.flexWrap = 'wrap';
-
-    const playBtn = document.createElement('button');
-    playBtn.type = 'button';
-    playBtn.className = 'btn-green-sm';
-    playBtn.textContent = track.audioUrl ? 'Play' : 'Select';
-    playBtn.addEventListener('click', () => playTrack(track));
-    actions.appendChild(playBtn);
-
-    if (track.audioUrl) {
-      const dlBtn = document.createElement('button');
-      dlBtn.type = 'button';
-      dlBtn.className = 'btn-soft';
-      dlBtn.textContent = 'Download';
-      dlBtn.addEventListener('click', () => downloadTrack(track));
-      actions.appendChild(dlBtn);
-    }
-
-    const extBtn = document.createElement('button');
-    extBtn.type = 'button';
-    extBtn.className = 'btn-soft';
-    extBtn.textContent = 'Extend';
-    extBtn.addEventListener('click', () => extendTrack(track));
-    actions.appendChild(extBtn);
-
-    const delBtn = document.createElement('button');
-    delBtn.type = 'button';
-    delBtn.className = 'btn-soft';
-    delBtn.textContent = 'Delete';
-    delBtn.addEventListener('click', () => deleteTrack(track.id));
-    actions.appendChild(delBtn);
-
-    card.appendChild(info);
-    card.appendChild(actions);
-    container.appendChild(card);
-  });
+  container.innerHTML = list
+    .map(
+      (t) => `
+      <div class="track-card mt-12">
+        <div class="flex-gap">
+          <div class="track-thumb">${escapeHtml(t.duration || "02:00")}</div>
+          <div>
+            <strong>${escapeHtml(t.title)}</strong>
+            <div class="muted">
+              ${escapeHtml(t.model || "v6-mini")} · ${escapeHtml(t.styles || "")} · Workspace: ${escapeHtml(t.workspace || "Default Workspace")}
+            </div>
+          </div>
+        </div>
+        <div class="flex-gap">
+          <button type="button" class="btn-green" onclick="playTrackById('${t.id}')">Play</button>
+          <button type="button" class="btn-soft" onclick="toggleLikeTrack('${t.id}')">${t.liked ? "Liked" : "Like"}</button>
+          <button type="button" class="btn-soft" onclick="extendTrackById('${t.id}')">Extend</button>
+          <button type="button" class="btn-soft" onclick="downloadTrackById('${t.id}')">Download</button>
+          <button type="button" class="btn-soft" onclick="deleteTrackById('${t.id}')">Delete</button>
+        </div>
+      </div>`
+    )
+    .join("");
 }
 
 function renderAllTracks() {
-  renderTrackList(els.recentTracks, state.tracks.slice(0, 6));
-  renderTrackList(els.libraryTracks, state.tracks);
+  renderTrackList("recent-tracks-container", state.tracks.slice(0, 6));
+
+  const filterVal = document.getElementById("lib-filter-select")?.value || "all";
+  const wsVal = document.getElementById("lib-workspace-select")?.value || "all";
+  const qVal = (document.getElementById("lib-search-input")?.value || "").trim().toLowerCase();
+
+  const filtered = state.tracks.filter((t) => {
+    if (filterVal === "liked" && !t.liked) return false;
+    if (filterVal === "instrumental" && t.type !== "instrumental") return false;
+    if (filterVal === "vocal" && t.type !== "vocal") return false;
+    if (wsVal !== "all" && (t.workspace || "Default Workspace") !== wsVal) return false;
+    if (qVal) {
+      const hay = `${t.title} ${t.styles} ${t.lyrics}`.toLowerCase();
+      if (!hay.includes(qVal)) return false;
+    }
+    return true;
+  });
+
+  renderTrackList("library-tracks-container", filtered);
 }
 
-function playTrack(track) {
-  state.currentTrack = track;
-  els.playerTitle.textContent = track.title;
-  els.playerStyle.textContent = `${track.language || 'Any Language'} · ${track.style || ''}`;
-  const totalSec = Number(track.durationMinutes || 2) * 60;
-  const mins = String(Math.floor(totalSec / 60)).padStart(2, '0');
-  const secs = String(totalSec % 60).padStart(2, '0');
-  els.playerTime.textContent = `00:00 / ${mins}:${secs}`;
+window.playTrackById = function (id) {
+  const track = state.tracks.find((t) => t.id === id);
+  if (!track) return;
+  state.activeTrackId = track.id;
+
+  const titleEl = document.getElementById("player-track-title");
+  const metaEl = document.getElementById("player-track-meta");
+  const clockEl = document.getElementById("player-clock");
+  const audioEl = document.getElementById("player-audio-el");
+
+  if (titleEl) titleEl.textContent = track.title;
+  if (metaEl) metaEl.textContent = `${track.model} · ${track.styles}`;
+  if (clockEl) clockEl.textContent = `00:00 / ${track.duration || "02:00"}`;
+
+  if (audioEl) {
+    if (track.audioUrl) {
+      audioEl.src = track.audioUrl;
+      audioEl.play().catch(() => {});
+    } else {
+      audioEl.removeAttribute("src");
+    }
+  }
+};
+
+window.toggleLikeTrack = async function (id) {
+  try {
+    const res = await apiFetch(`/api/tracks/${encodeURIComponent(id)}/like`, { method: "POST" });
+    const idx = state.tracks.findIndex((t) => t.id === id);
+    if (idx !== -1 && res.track) state.tracks[idx] = res.track;
+    renderAllTracks();
+  } catch (err) {
+    alert(err.message);
+  }
+};
+
+window.extendTrackById = function (id) {
+  const track = state.tracks.find((t) => t.id === id);
+  if (!track) return;
+  switchMainSection("studio");
+  const titleInput = document.getElementById("song-title-opt");
+  const stylesInput = document.getElementById("song-styles");
+  if (titleInput) titleInput.value = `${track.title} (Extended)`;
+  if (stylesInput && track.styles) stylesInput.value = track.styles;
+  document.getElementById("song-create-status").textContent = `Loaded "${track.title}" into Studio for extension.`;
+};
+
+window.downloadTrackById = function (id) {
+  const track = state.tracks.find((t) => t.id === id);
+  if (!track) return;
 
   if (track.audioUrl) {
-    els.audioEl.src = track.audioUrl;
-    els.audioEl.play().catch(() => {});
-  } else {
-    els.audioEl.removeAttribute('src');
-  }
-}
-
-function renderWallets(wallets = {}) {
-  const entries = [
-    { key: 'USDT (ERC20)', addr: wallets.usdtErc20 },
-    { key: 'TRX (TRC20)', addr: wallets.trxTrc20 },
-    { key: 'BTC', addr: wallets.btc },
-    { key: 'ETH (ERC20)', addr: wallets.ethErc20 },
-    { key: 'BNB (BEP20)', addr: wallets.bnbBep20 }
-  ];
-
-  els.cryptoWalletsList.innerHTML = '';
-  entries.forEach((item) => {
-    const row = document.createElement('div');
-    const label = document.createElement('strong');
-    label.textContent = `${item.key}: `;
-    const val = document.createElement('span');
-    val.textContent = item.addr || 'Not set in Railway Variables';
-    row.appendChild(label);
-    row.appendChild(val);
-    els.cryptoWalletsList.appendChild(row);
-  });
-}
-
-function renderEnvStatus(providers = {}) {
-  els.envStatusList.innerHTML = '';
-  Object.entries(providers).forEach(([name, active]) => {
-    const card = document.createElement('div');
-    card.className = 'status-card';
-    const title = document.createElement('div');
-    title.textContent = name;
-    const badge = document.createElement('div');
-    badge.className = active ? 'status-ok' : 'status-missing';
-    badge.textContent = active ? 'Configured in Railway' : 'Not Set';
-    card.appendChild(title);
-    card.appendChild(badge);
-    els.envStatusList.appendChild(card);
-  });
-}
-
-async function loadConfig() {
-  try {
-    const r = await fetch('/api/config');
-    const data = await r.json();
-    state.config = data;
-    if (data.appName) {
-      els.brandName.textContent = data.appName;
-      document.title = `${data.appName} — Studio Dashboard`;
-    }
-    if (typeof data.dailyFreeCredits === 'number' && !localStorage.getItem('pk_ai_tool_music_state')) {
-      state.dailyLimit = data.dailyFreeCredits;
-      state.credits = data.dailyFreeCredits;
-    }
-    renderCredits();
-    renderWallets(data.wallets || {});
-    renderEnvStatus(data.providers || {});
-  } catch (_) {
-    renderCredits();
-  }
-}
-
-els.navBtns.forEach((btn) => {
-  btn.addEventListener('click', () => switchView(btn.dataset.view));
-});
-
-els.bannerAdBtn?.addEventListener('click', () => els.claimAdCreditsBtn?.click());
-els.bannerPlansBtn?.addEventListener('click', () => switchView('upgrade'));
-
-// Auth tabs
-els.authTabs.forEach((tab) => {
-  tab.addEventListener('click', () => {
-    els.authTabs.forEach((t) => t.classList.remove('active'));
-    tab.classList.add('active');
-    state.authMethod = tab.dataset.auth || 'Gmail';
-    if (state.authMethod === 'Phone') {
-      els.authIdLabel.textContent = 'Phone Number (with country code)';
-      els.authIdentifier.placeholder = '+92 300 0000000';
-      els.authCodeLabel.textContent = 'SMS OTP Code';
-      els.authCode.placeholder = 'Enter OTP code';
-    } else if (state.authMethod === 'GitHub') {
-      els.authIdLabel.textContent = 'GitHub Username or Email';
-      els.authIdentifier.placeholder = 'github-username';
-      els.authCodeLabel.textContent = 'Verification Code / Token';
-      els.authCode.placeholder = 'Enter verification code';
-    } else {
-      els.authIdLabel.textContent = 'Gmail Address';
-      els.authIdentifier.placeholder = 'you@gmail.com';
-      els.authCodeLabel.textContent = 'Email Verification Code';
-      els.authCode.placeholder = 'Enter 6-digit code';
-    }
-  });
-});
-
-els.authVerifyBtn?.addEventListener('click', async () => {
-  const identifier = els.authIdentifier.value.trim();
-  const codeOrToken = els.authCode.value.trim();
-  if (!identifier || codeOrToken.length < 4) {
-    els.authResultMsg.textContent = 'Enter a valid account identifier and verification code.';
+    const a = document.createElement("a");
+    a.href = track.audioUrl;
+    a.download = `${track.title.replace(/[^a-z0-9-_]+/gi, "_")}.mp3`;
+    a.click();
     return;
   }
 
+  const content = [
+    `Title: ${track.title}`,
+    `Model: ${track.model}`,
+    `Language: ${track.language || "Auto"}`,
+    `Styles: ${track.styles || ""}`,
+    `Duration: ${track.duration || "02:00"}`,
+    "",
+    track.lyrics || ""
+  ].join("\n");
+
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${track.title.replace(/[^a-z0-9-_]+/gi, "_")}.txt`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+
+window.deleteTrackById = async function (id) {
   try {
-    const r = await fetch('/api/auth/verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ method: state.authMethod, identifier, codeOrToken })
-    });
-    const data = await r.json();
-    if (!r.ok || !data.ok) {
-      els.authResultMsg.textContent = data.error || 'Verification failed.';
-      return;
-    }
-    state.userSession = data.user;
-    saveLocalState();
-    renderAuthStatus();
-    els.authResultMsg.textContent = `Verified via ${state.authMethod}: ${identifier}`;
+    await apiFetch(`/api/tracks/${encodeURIComponent(id)}`, { method: "DELETE" });
+    state.tracks = state.tracks.filter((t) => t.id !== id);
+    renderAllTracks();
   } catch (err) {
-    els.authResultMsg.textContent = err.message || 'Verification error.';
+    alert(err.message);
   }
-});
+};
 
-els.instrumentalToggle?.addEventListener('change', () => {
-  if (els.lyricsGroup) {
-    els.lyricsGroup.style.display = els.instrumentalToggle.checked ? 'none' : 'block';
-  }
-});
+window.focusCryptoPlan = function (planName, cycle) {
+  const cycleSel = document.getElementById("crypto-plan-cycle");
+  const msg = document.getElementById("crypto-activate-msg");
+  if (cycleSel) cycleSel.value = cycle === "Yearly" ? "Yearly" : "Monthly";
+  if (msg) msg.textContent = `Selected ${planName} (${cycle}). Send crypto to a configured wallet and submit TxID below.`;
+  document.getElementById("crypto-txid-input")?.focus();
+};
 
-els.qualityPreset.addEventListener('change', renderCredits);
-els.voiceOriginality.addEventListener('input', () => {
-  els.voiceOriginalityVal.textContent = `${els.voiceOriginality.value}%`;
-});
+function switchMainSection(sectionName) {
+  document.querySelectorAll(".view-section").forEach((sec) => {
+    sec.classList.toggle("active", sec.id === `section-${sectionName}`);
+  });
+  document.querySelectorAll(".side-link").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.section === sectionName);
+  });
+}
 
-els.vocalFile.addEventListener('change', () => {
-  const file = els.vocalFile.files?.[0];
-  els.vocalFileName.textContent = file
-    ? `Selected: ${file.name} (${(file.size / (1024 * 1024)).toFixed(2)} MB)`
-    : 'No audio file selected';
-});
+function bindUI() {
+  // Sidebar navigation
+  document.querySelectorAll(".side-link").forEach((btn) => {
+    btn.addEventListener("click", () => switchMainSection(btn.dataset.section));
+  });
 
-els.fillSampleLyrics.addEventListener('click', () => {
-  if (!els.trackLyrics.value.trim()) {
-    els.trackLyrics.value =
-      '[Verse 1]\nUnder the open sky we find our voice\nEvery melody echoes across the night\n\n[Chorus]\nSing it out loud, let the rhythm rise\nA new sound shining bright';
-  }
-});
+  document.getElementById("quick-login-btn")?.addEventListener("click", () => switchMainSection("auth"));
+  document.getElementById("banner-plan-trigger")?.addEventListener("click", () => switchMainSection("plans"));
 
-els.resetDailyBtn.addEventListener('click', () => {
-  state.credits = state.dailyLimit;
-  saveLocalState();
-  renderCredits();
-});
+  // Studio tabs (Songs / Speech / Visuals)
+  document.querySelectorAll(".studio-mode-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const tab = btn.dataset.studioTab;
+      document.querySelectorAll(".studio-mode-btn").forEach((b) => b.classList.toggle("active", b === btn));
+      document.querySelectorAll(".sub-mode-panel").forEach((p) => p.classList.toggle("active", p.id === `studio-${tab}`));
+    });
+  });
 
-els.claimAdCreditsBtn.addEventListener('click', () => {
-  state.credits += 10;
-  if (state.credits > state.dailyLimit && state.subscription.plan === 'Free') {
-    state.dailyLimit = state.credits;
-  }
-  saveLocalState();
-  renderCredits();
-  els.adInfoText.textContent = '+10 reward credits added from ad slot.';
-});
+  // Simple / Advanced toggle for Songs
+  document.querySelectorAll("[data-complexity]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("[data-complexity]").forEach((b) => b.classList.toggle("active", b === btn));
+      const isSimple = btn.dataset.complexity === "simple";
+      const lyricsField = document.getElementById("song-lyrics-field");
+      if (lyricsField) lyricsField.style.display = isSimple ? "block" : "block";
+    });
+  });
 
-els.generateBtn.addEventListener('click', async () => {
-  const cost = getSelectedCost();
-  if (state.credits < cost) {
-    els.generateStatus.textContent = `Insufficient credits (${cost} required). Watch an Ad or activate a Crypto Plan.`;
-    renderCredits();
-    return;
-  }
+  // Sliders
+  const bindSlider = (id, outId) => {
+    const inp = document.getElementById(id);
+    const out = document.getElementById(outId);
+    inp?.addEventListener("input", () => {
+      if (out) out.textContent = `${inp.value}%`;
+    });
+  };
+  bindSlider("slider-weirdness", "val-weirdness");
+  bindSlider("slider-style-inf", "val-style-inf");
+  bindSlider("slider-originality", "val-originality");
 
-  const payload = {
-    language: els.trackLanguage?.value || 'Auto / Any Language',
-    title: els.trackTitle.value.trim() || 'PK AI Track',
-    lyrics: els.instrumentalToggle?.checked ? '' : els.trackLyrics.value.trim(),
-    style: els.trackStyle.value.trim() || 'Natural Studio Vocals & Music',
-    customMode: Boolean(els.customModeToggle?.checked ?? true),
-    instrumental: Boolean(els.instrumentalToggle?.checked),
-    qualityPreset: els.qualityPreset.value,
-    voiceOriginality: Number(els.voiceOriginality.value),
-    durationMinutes: Number(els.durationSelect.value),
-    hasVocalSample: Boolean(els.vocalFile.files?.[0]),
-    creditCost: cost
+  // Gender / MaxMode / Personalize buttons
+  document.querySelectorAll(".gender-pick").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.selectedGender = btn.dataset.gender;
+      document.querySelectorAll(".gender-pick").forEach((b) => b.classList.toggle("active", b === btn));
+    });
+  });
+
+  document.querySelectorAll(".maxmode-pick").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.selectedMaxMode = btn.dataset.max;
+      document.querySelectorAll(".maxmode-pick").forEach((b) => b.classList.toggle("active", b === btn));
+    });
+  });
+
+  document.querySelectorAll(".pers-pick").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.selectedPersonalize = btn.dataset.pers;
+      document.querySelectorAll(".pers-pick").forEach((b) => b.classList.toggle("active", b === btn));
+    });
+  });
+
+  // Quick style tags
+  document.querySelectorAll(".style-tag").forEach((tagBtn) => {
+    tagBtn.addEventListener("click", () => {
+      tagBtn.classList.toggle("active");
+      const stylesInp = document.getElementById("song-styles");
+      if (!stylesInp) return;
+      const activeTags = [...document.querySelectorAll(".style-tag.active")].map((el) => el.dataset.tag);
+      stylesInp.value = activeTags.join(", ");
+    });
+  });
+
+  // Sample lyrics helper
+  document.getElementById("btn-sample-lyrics")?.addEventListener("click", () => {
+    const ta = document.getElementById("song-lyrics");
+    if (ta) {
+      ta.value = "[Verse]\nWrite your lyrics here, one line at a time\nEvery line you add is a line we'll sing\n\n[Chorus]\nA chorus to repeat with rhythm and soul";
+    }
+  });
+
+  // Media attachment buttons (+ Audio / + Voice / + Inspo)
+  const hiddenInput = document.getElementById("hidden-media-input");
+  const attachNote = document.getElementById("media-attach-note");
+
+  document.getElementById("btn-add-audio")?.addEventListener("click", () => {
+    if (!hiddenInput) return;
+    hiddenInput.accept = "audio/*";
+    hiddenInput.click();
+  });
+
+  document.getElementById("btn-add-inspo")?.addEventListener("click", () => {
+    if (!hiddenInput) return;
+    hiddenInput.accept = "image/*,audio/*";
+    hiddenInput.click();
+  });
+
+  document.getElementById("btn-add-voice")?.addEventListener("click", () => {
+    const voiceName = prompt("Enter Voice preset / name (e.g., Warm Tenor, Clear Alto):");
+    if (voiceName && voiceName.trim()) {
+      state.attachedMedia = `Voice: ${voiceName.trim()}`;
+      if (attachNote) attachNote.textContent = `Attached: ${state.attachedMedia}`;
+    }
+  });
+
+  hiddenInput?.addEventListener("change", () => {
+    const f = hiddenInput.files?.[0];
+    if (f) {
+      state.attachedMedia = `File: ${f.name}`;
+      if (attachNote) attachNote.textContent = `Attached: ${state.attachedMedia}`;
+    }
+  });
+
+  // Visuals mode toggle (Image / Video) & Character
+  document.getElementById("vis-mode-image")?.addEventListener("click", (e) => {
+    e.target.classList.add("active");
+    document.getElementById("vis-mode-video")?.classList.remove("active");
+  });
+  document.getElementById("vis-mode-video")?.addEventListener("click", (e) => {
+    e.target.classList.add("active");
+    document.getElementById("vis-mode-image")?.classList.remove("active");
+  });
+  document.getElementById("vis-add-character")?.addEventListener("click", () => {
+    const charName = prompt("Choose or create Character (e.g., Disconaut, Chrome Contessa, Disco Dude):");
+    if (charName && charName.trim()) {
+      state.selectedCharacter = charName.trim();
+      const badge = document.getElementById("selected-character-badge");
+      if (badge) badge.textContent = `Character: ${state.selectedCharacter}`;
+    }
+  });
+
+  // Create Song
+  document.getElementById("btn-create-song")?.addEventListener("click", async () => {
+    const statusEl = document.getElementById("song-create-status");
+    const btn = document.getElementById("btn-create-song");
+    try {
+      if (btn) btn.disabled = true;
+      if (statusEl) statusEl.textContent = "Generating 2 tracks via server...";
+
+      const payload = {
+        title: document.getElementById("song-title-opt")?.value || "",
+        lyrics: document.getElementById("song-lyrics")?.value || "",
+        styles: document.getElementById("song-styles")?.value || "",
+        language: document.getElementById("song-language")?.value || "Auto Detect (Any World Language)",
+        model: document.getElementById("song-model-select")?.value || "v6-mini",
+        gender: state.selectedGender,
+        durationMode: document.getElementById("song-duration-mode")?.value || "Auto",
+        durationMin: Number(document.getElementById("song-duration-min")?.value || 2),
+        maxMode: state.selectedMaxMode,
+        weirdness: Number(document.getElementById("slider-weirdness")?.value || 50),
+        styleInfluence: Number(document.getElementById("slider-style-inf")?.value || 50),
+        originality: Number(document.getElementById("slider-originality")?.value || 85),
+        variety: document.getElementById("song-variety")?.value || "Normal",
+        personalize: state.selectedPersonalize,
+        instrumental: Boolean(document.getElementById("chk-instrumental")?.checked),
+        workspace: document.getElementById("song-workspace")?.value || "Default Workspace",
+        qualityCost: Number(document.getElementById("song-quality")?.value || 10)
+      };
+
+      const data = await apiFetch("/api/songs/create", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+
+      state.credits = data.credits;
+      if (Array.isArray(data.tracks)) {
+        state.tracks.unshift(...data.tracks);
+      }
+      updateCreditUI();
+      renderAllTracks();
+      if (statusEl) statusEl.textContent = `Created ${data.tracks?.length || 2} tracks (-${data.cost} credits).`;
+    } catch (err) {
+      if (statusEl) statusEl.textContent = `Error: ${err.message}`;
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  });
+
+  // Create Speech
+  document.getElementById("btn-create-speech")?.addEventListener("click", async () => {
+    const statusEl = document.getElementById("speech-status");
+    try {
+      if (statusEl) statusEl.textContent = "Synthesizing speech...";
+      const data = await apiFetch("/api/speech/create", {
+        method: "POST",
+        body: JSON.stringify({
+          script: document.getElementById("speech-script")?.value || "",
+          tone: document.getElementById("speech-tone")?.value || "",
+          gender: document.getElementById("speech-gender")?.value || "Male",
+          bgMusic: document.getElementById("speech-bg-music")?.value || "Off",
+          variety: document.getElementById("speech-variety")?.value || "Normal"
+        })
+      });
+      state.credits = data.credits;
+      if (data.track) state.tracks.unshift(data.track);
+      updateCreditUI();
+      renderAllTracks();
+      if (statusEl) statusEl.textContent = "Speech track created and added to Library.";
+    } catch (err) {
+      if (statusEl) statusEl.textContent = `Error: ${err.message}`;
+    }
+  });
+
+  // Create Visual
+  document.getElementById("btn-create-visual")?.addEventListener("click", async () => {
+    const statusEl = document.getElementById("visual-status");
+    const sel = document.getElementById("visual-quality");
+    const opt = sel?.options[sel.selectedIndex];
+    const cost = Number(opt?.dataset?.cost || 25);
+
+    try {
+      if (statusEl) statusEl.textContent = "Generating visual...";
+      const data = await apiFetch("/api/visuals/create", {
+        method: "POST",
+        body: JSON.stringify({
+          prompt: document.getElementById("visual-prompt")?.value || "",
+          aspectRatio: document.getElementById("visual-aspect")?.value || "1:1",
+          qualityLabel: sel?.value || "Standard · 1K",
+          cost
+        })
+      });
+      state.credits = data.credits;
+      updateCreditUI();
+      if (statusEl) {
+        statusEl.innerHTML = data.imageUrl
+          ? `Visual generated: <a href="${data.imageUrl}" target="_blank" rel="noopener">Open generated image</a>`
+          : "Visual request completed.";
+      }
+    } catch (err) {
+      if (statusEl) statusEl.textContent = `Error: ${err.message}`;
+    }
+  });
+
+  // Watch Ad (+10 Credits)
+  const handleWatchAd = async () => {
+    try {
+      const data = await apiFetch("/api/credits/watch-ad", { method: "POST" });
+      state.credits = data.credits;
+      state.maxCredits = Math.max(state.maxCredits, state.credits);
+      updateCreditUI();
+      alert(data.message || "+10 credits added.");
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+  document.getElementById("watch-ad-btn")?.addEventListener("click", handleWatchAd);
+  document.getElementById("banner-ad-trigger")?.addEventListener("click", handleWatchAd);
+
+  // Reset credits
+  document.getElementById("reset-credits-btn")?.addEventListener("click", async () => {
+    try {
+      const data = await apiFetch("/api/credits/reset", { method: "POST" });
+      state.credits = data.credits;
+      state.maxCredits = 50;
+      state.plan = data.plan;
+      state.billingCycle = "None";
+      updateCreditUI();
+    } catch (err) {
+      alert(err.message);
+    }
+  });
+
+  // Monthly / Yearly toggle in Plans
+  document.getElementById("cycle-toggle-monthly")?.addEventListener("click", (e) => {
+    state.planCycleTab = "Monthly";
+    e.target.classList.add("active");
+    document.getElementById("cycle-toggle-yearly")?.classList.remove("active");
+    document.getElementById("pro-price-label").innerHTML = `$8 <span class="muted">/ month</span>`;
+    document.getElementById("prem-price-label").innerHTML = `$24 <span class="muted">/ month</span>`;
+  });
+
+  document.getElementById("cycle-toggle-yearly")?.addEventListener("click", (e) => {
+    state.planCycleTab = "Yearly";
+    e.target.classList.add("active");
+    document.getElementById("cycle-toggle-monthly")?.classList.remove("active");
+    document.getElementById("pro-price-label").innerHTML = `$96 <span class="muted">/ year</span>`;
+    document.getElementById("prem-price-label").innerHTML = `$288 <span class="muted">/ year</span>`;
+  });
+
+  // Crypto TxID activation
+  document.getElementById("crypto-activate-btn")?.addEventListener("click", async () => {
+    const msgEl = document.getElementById("crypto-activate-msg");
+    try {
+      const data = await apiFetch("/api/plans/verify-crypto", {
+        method: "POST",
+        body: JSON.stringify({
+          cycle: document.getElementById("crypto-plan-cycle")?.value || "Monthly",
+          network: document.getElementById("crypto-network-sel")?.value || "USDT (ERC20)",
+          txid: document.getElementById("crypto-txid-input")?.value || ""
+        })
+      });
+      state.credits = data.credits;
+      state.maxCredits = Math.max(state.maxCredits, state.credits);
+      state.plan = data.plan;
+      state.billingCycle = data.cycle;
+      updateCreditUI();
+      if (msgEl) msgEl.textContent = data.message;
+    } catch (err) {
+      if (msgEl) msgEl.textContent = `Error: ${err.message}`;
+    }
+  });
+
+  // Auth method tabs & verify
+  document.querySelectorAll(".auth-method-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.authMethodTab = btn.dataset.method;
+      document.querySelectorAll(".auth-method-btn").forEach((b) => b.classList.toggle("active", b === btn));
+      const lbl = document.getElementById("auth-user-label");
+      const inp = document.getElementById("auth-user-input");
+      if (state.authMethodTab === "Gmail") {
+        if (lbl) lbl.textContent = "Gmail Address";
+        if (inp) inp.placeholder = "user@gmail.com";
+      } else if (state.authMethodTab === "Phone OTP") {
+        if (lbl) lbl.textContent = "Phone Number";
+        if (inp) inp.placeholder = "+92 300 0000000 / +91 98000 00000";
+      } else {
+        if (lbl) lbl.textContent = "GitHub Username or Email";
+        if (inp) inp.placeholder = "github-username";
+      }
+    });
+  });
+
+  document.getElementById("auth-submit-btn")?.addEventListener("click", async () => {
+    const fb = document.getElementById("auth-feedback");
+    try {
+      const data = await apiFetch("/api/auth/verify", {
+        method: "POST",
+        body: JSON.stringify({
+          method: state.authMethodTab,
+          identifier: document.getElementById("auth-user-input")?.value || "",
+          code: document.getElementById("auth-otp-input")?.value || ""
+        })
+      });
+      state.verified = data.verified;
+      state.authMethod = data.authMethod;
+      state.userIdentifier = data.userIdentifier;
+      updateCreditUI();
+      if (fb) fb.textContent = data.message;
+    } catch (err) {
+      if (fb) fb.textContent = `Error: ${err.message}`;
+    }
+  });
+
+  // Chat Assistant
+  document.getElementById("assistant-send-btn")?.addEventListener("click", async () => {
+    const inp = document.getElementById("assistant-prompt-input");
+    const log = document.getElementById("assistant-log");
+    const prompt = (inp?.value || "").trim();
+    if (!prompt || !log) return;
+
+    log.innerHTML += `<div class="track-card"><div><strong>You:</strong> ${escapeHtml(prompt)}</div></div>`;
+    inp.value = "";
+
+    try {
+      const data = await apiFetch("/api/assistant/chat", {
+        method: "POST",
+        body: JSON.stringify({ prompt, history: state.chatHistory })
+      });
+      state.chatHistory.push({ role: "user", content: prompt }, { role: "assistant", content: data.reply });
+      log.innerHTML += `<div class="track-card"><div><strong>Assistant:</strong><br/>${escapeHtml(data.reply).replaceAll("\n", "<br/>")}</div></div>`;
+      log.scrollTop = log.scrollHeight;
+    } catch (err) {
+      log.innerHTML += `<div class="track-card"><div><strong>Error:</strong> ${escapeHtml(err.message)}</div></div>`;
+    }
+  });
+
+  // Library search & filters
+  ["lib-filter-select", "lib-workspace-select", "lib-search-input"].forEach((id) => {
+    document.getElementById(id)?.addEventListener("input", renderAllTracks);
+    document.getElementById(id)?.addEventListener("change", renderAllTracks);
+  });
+
+  // Articles / Menu guide tabs
+  const articleMap = {
+    products: {
+      title: "Products & Studio Modules",
+      body: "<strong>Studio (Songs):</strong> Generate vocal tracks or instrumentals in any world language with Simple/Advanced controls, [Verse]/[Chorus] lyrics tags, Styles, Vocal Gender, Duration (1–20 min), Weirdness, Style Influence, and Voice Originality.<br/><br/><strong>Speech (BETA):</strong> Convert scripts into speech with tone, gender, background music toggle, and variety.<br/><br/><strong>Visuals:</strong> Image and Video generation with Character selection, Style Guide, Aspect Ratio, and frame controls.<br/><br/><strong>Library & Workspaces:</strong> Search, filter, play, extend, download, and delete tracks."
+    },
+    guides: {
+      title: "How It Works & FAQ",
+      body: "1. Choose Songs, Speech, or Visuals.<br/>2. Add lyrics/script/prompt and style tags.<br/>3. Adjust Vocal Gender, Duration, Weirdness, or Style Influence.<br/>4. Click Create to generate tracks and manage them in Library.<br/>5. If free credits run low, watch an ad (+10 credits) or activate a Monthly or Yearly Crypto plan."
+    },
+    "plans-guide": {
+      title: "Monthly & Yearly Plans Guide",
+      body: "Both <strong>Monthly</strong> and <strong>Yearly</strong> billing cycles are supported. Send payment to a configured wallet address on Railway and submit your Transaction Hash / TxID under <strong>Monthly & Yearly Plans</strong> to activate credits."
+    },
+    policies: {
+      title: "Terms, Privacy, Safety & Community Guidelines",
+      body: "Users are responsible for the lyrics, audio, scripts, and visual prompts they submit and must follow copyright, safety, and community guidelines. API keys and crypto wallet addresses remain stored in Railway environment variables."
+    }
   };
 
-  els.generateBtn.disabled = true;
-  els.generateStatus.textContent = 'Generating 2 tracks via connected APIs...';
-
-  try {
-    const r = await fetch('/api/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+  document.querySelectorAll(".article-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".article-btn").forEach((b) => {
+        b.classList.remove("btn-green");
+        b.classList.add("btn-soft");
+      });
+      btn.classList.remove("btn-soft");
+      btn.classList.add("btn-green");
+      const item = articleMap[btn.dataset.article];
+      const card = document.getElementById("article-content-card");
+      if (item && card) {
+        card.innerHTML = `<h3>${item.title}</h3><p class="muted">${item.body}</p>`;
+      }
     });
-    const data = await r.json();
-
-    if (!r.ok || !data.ok) {
-      els.generateStatus.textContent = data.error || 'Generation request failed.';
-      return;
-    }
-
-    state.credits = Math.max(0, state.credits - cost);
-    state.tracks = [...(data.tracks || []), ...state.tracks];
-    saveLocalState();
-    renderCredits();
-    renderAllTracks();
-    els.generateStatus.textContent = `Generated ${data.tracks?.length || 2} tracks (${cost} credits used).`;
-  } catch (err) {
-    els.generateStatus.textContent = err.message || 'Network error while generating tracks.';
-  } finally {
-    els.generateBtn.disabled = false;
-  }
-});
-
-async function sendChatMessage() {
-  const msg = els.chatInput.value.trim();
-  if (!msg) return;
-
-  appendChat('user', msg);
-  els.chatInput.value = '';
-  els.chatSendBtn.disabled = true;
-
-  try {
-    const r = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: msg,
-        mood: els.trackStyle.value.trim(),
-        language: els.trackLanguage?.value || 'Auto / Any Language'
-      })
-    });
-    const data = await r.json();
-    if (!r.ok || !data.ok) {
-      appendChat('bot', data.error || 'Unable to get response from LLM API.');
-      return;
-    }
-    appendChat('bot', data.reply);
-    if (data.suggestedStyle && !els.trackStyle.value.trim()) {
-      els.trackStyle.value = data.suggestedStyle;
-    }
-  } catch (err) {
-    appendChat('bot', err.message || 'Chat request failed.');
-  } finally {
-    els.chatSendBtn.disabled = false;
-  }
+  });
 }
 
-els.chatSendBtn.addEventListener('click', sendChatMessage);
-els.chatInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') sendChatMessage();
-});
-
-els.verifyCryptoBtn.addEventListener('click', async () => {
-  const txHash = els.txHash.value.trim();
-  const billingCycle = els.billingCycle?.value || 'Monthly';
-  const network = els.cryptoNetwork?.value || 'USDT (ERC20)';
-
-  if (!txHash || txHash.length < 10) {
-    els.cryptoStatus.textContent = 'Please enter a valid Crypto Transaction Hash / TxID.';
-    return;
-  }
-
-  els.verifyCryptoBtn.disabled = true;
-  els.cryptoStatus.textContent = 'Verifying crypto transaction hash...';
-
+async function initApp() {
+  bindUI();
   try {
-    const r = await fetch('/api/crypto/verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ txHash, billingCycle, network })
-    });
-    const data = await r.json();
-
-    if (!r.ok || !data.ok) {
-      els.cryptoStatus.textContent = data.error || 'Could not verify TxID.';
-      return;
+    const health = await apiFetch("/api/health");
+    if (health.session?.token) {
+      state.token = health.session.token;
+      localStorage.setItem("pk_session_token", state.token);
     }
+    state.credits = health.session?.credits ?? 50;
+    state.maxCredits = health.session?.maxCredits ?? 50;
+    state.plan = health.session?.plan || "Free";
+    state.billingCycle = health.session?.billingCycle || "None";
+    state.verified = Boolean(health.session?.verified);
+    state.authMethod = health.session?.authMethod || null;
+    state.userIdentifier = health.session?.userIdentifier || null;
+    state.providers = health.providers || null;
+    state.wallets = health.wallets || {};
 
-    const bonusCredits = billingCycle === 'Yearly' ? 2000 : 500;
-    state.subscription = {
-      plan: 'Pro Crypto',
-      billingCycle,
-      network,
-      lastTxId: txHash,
-      verifiedAt: data.verifiedAt || new Date().toISOString()
-    };
-    state.dailyLimit = Math.max(state.dailyLimit, bonusCredits);
-    state.credits += bonusCredits;
-    saveLocalState();
-    renderCredits();
-    els.cryptoStatus.textContent = `Verified (${network} · ${billingCycle}). Added +${bonusCredits} credits.`;
-  } catch (err) {
-    els.cryptoStatus.textContent = err.message || 'Verification error.';
-  } finally {
-    els.verifyCryptoBtn.disabled = false;
+    const tracksRes = await apiFetch("/api/tracks");
+    state.tracks = Array.isArray(tracksRes.tracks) ? tracksRes.tracks : [];
+  } catch (_) {
+    // Keep initial local state if health check is unreachable
   }
-});
 
-els.playToggleBtn.addEventListener('click', () => {
-  if (!els.audioEl.src) return;
-  if (els.audioEl.paused) els.audioEl.play().catch(() => {});
-  else els.audioEl.pause();
-});
+  updateCreditUI();
+  renderWallets();
+  renderRailwayKeys();
+  renderAllTracks();
+}
 
-els.audioEl.addEventListener('timeupdate', () => {
-  if (!els.audioEl.duration || Number.isNaN(els.audioEl.duration)) return;
-  const pct = (els.audioEl.currentTime / els.audioEl.duration) * 100;
-  els.playerSeek.value = String(pct);
-  const curMin = String(Math.floor(els.audioEl.currentTime / 60)).padStart(2, '0');
-  const curSec = String(Math.floor(els.audioEl.currentTime % 60)).padStart(2, '0');
-  const durMin = String(Math.floor(els.audioEl.duration / 60)).padStart(2, '0');
-  const durSec = String(Math.floor(els.audioEl.duration % 60)).padStart(2, '0');
-  els.playerTime.textContent = `${curMin}:${curSec} / ${durMin}:${durSec}`;
-});
-
-els.playerSeek.addEventListener('input', () => {
-  if (!els.audioEl.duration || Number.isNaN(els.audioEl.duration)) return;
-  els.audioEl.currentTime = (Number(els.playerSeek.value) / 100) * els.audioEl.duration;
-});
-
-loadLocalState();
-renderAuthStatus();
-renderCredits();
-renderAllTracks();
-loadConfig();
+document.addEventListener("DOMContentLoaded", initApp);
