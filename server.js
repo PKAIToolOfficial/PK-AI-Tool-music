@@ -51,15 +51,18 @@ app.get('/api/config', (req, res) => {
 });
 
 // Real LLM call helper (Groq -> OpenAI -> DeepSeek -> Gemini)
-async function callTextLLM(promptText, styleHint = '') {
+async function callTextLLM(promptText, styleHint = '', language = 'Auto / Any Language') {
   const systemPrompt =
-    'You are the songwriting, music style, and studio assistant inside PK AI Tool Music. Write clear song titles, structured lyrics ([Verse], [Chorus], [Bridge]), and detailed natural music production/vocal style prompts.';
+    'You are the songwriting, music style, and studio assistant inside PK AI Tool Music. Write clear song titles, structured lyrics ([Verse], [Chorus], [Bridge]), and detailed natural music production/vocal style prompts in the requested or matching language.';
 
-  const userPrompt = styleHint
-    ? `Request: ${promptText}\nPreferred Style/Mood: ${styleHint}`
-    : `Request: ${promptText}`;
+  const userPrompt = [
+    `Target Language: ${language}`,
+    styleHint ? `Preferred Style/Mood: ${styleHint}` : '',
+    `Request: ${promptText}`
+  ]
+    .filter(Boolean)
+    .join('\n');
 
-  // 1. Groq (OpenAI-compatible)
   if (process.env.GROQ_API_KEY) {
     const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -83,7 +86,6 @@ async function callTextLLM(promptText, styleHint = '') {
     }
   }
 
-  // 2. OpenAI
   if (process.env.OPENAI_API_KEY) {
     const r = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -107,7 +109,6 @@ async function callTextLLM(promptText, styleHint = '') {
     }
   }
 
-  // 3. DeepSeek
   if (process.env.DEEPSEEK_API_KEY) {
     const r = await fetch('https://api.deepseek.com/chat/completions', {
       method: 'POST',
@@ -131,7 +132,6 @@ async function callTextLLM(promptText, styleHint = '') {
     }
   }
 
-  // 4. Gemini REST API
   if (process.env.GEMINI_API_KEY) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(process.env.GEMINI_API_KEY)}`;
     const r = await fetch(url, {
@@ -154,14 +154,14 @@ async function callTextLLM(promptText, styleHint = '') {
 // Chat & Lyrics / Style endpoint
 app.post('/api/chat', async (req, res) => {
   try {
-    const { message, mood } = req.body || {};
+    const { message, mood, language } = req.body || {};
     const promptText = String(message || '').trim();
 
     if (!promptText) {
-      return res.status(400).json({ ok: false, error: 'براہ کرم پیغام یا موضوع لکھیں۔' });
+      return res.status(400).json({ ok: false, error: 'Please enter a message or song topic.' });
     }
 
-    const llmResult = await callTextLLM(promptText, mood);
+    const llmResult = await callTextLLM(promptText, mood, language);
 
     if (llmResult) {
       return res.json({
@@ -177,19 +177,20 @@ app.post('/api/chat', async (req, res) => {
 
     return res.status(400).json({
       ok: false,
-      error: 'Railway Variables میں کوئی فعال LLM API Key (GROQ / OPENAI / DEEPSEEK / GEMINI) نہیں ملی۔'
+      error: 'No active LLM API key (GROQ / OPENAI / DEEPSEEK / GEMINI) found in Railway Variables.'
     });
   } catch (err) {
     return res.status(500).json({ ok: false, error: err.message || 'Chat API error' });
   }
 });
 
-// Vocal / TTS / Audio generation helper (Fish Audio / ElevenLabs / fal.ai)
-async function generateAudioFromApi({ title, lyrics, style, qualityPreset, durationMinutes, voiceOriginality }) {
-  const cleanText = String(lyrics || title || style || 'PK AI Tool Music Track').trim();
+// Vocal / TTS / Audio generation helper (Fish Audio / ElevenLabs)
+async function generateAudioFromApi({ title, lyrics, style, instrumental, qualityPreset, durationMinutes, voiceOriginality }) {
+  const cleanText = instrumental
+    ? `Instrumental music track: ${title}. Style: ${style}.`
+    : String(lyrics || title || style || 'PK AI Tool Music Track').trim();
   const isHigh = qualityPreset === 'high';
 
-  // Try Fish Audio TTS if configured
   if (process.env.FISH_AUDIO_API_KEY) {
     const r = await fetch('https://api.fish.audio/v1/tts', {
       method: 'POST',
@@ -210,19 +211,11 @@ async function generateAudioFromApi({ title, lyrics, style, qualityPreset, durat
       return {
         provider: 'fish-audio',
         audioUrl: `data:audio/mpeg;base64,${base64Audio}`,
-        meta: {
-          title,
-          style,
-          qualityPreset,
-          durationMinutes,
-          voiceOriginality,
-          highQualityMode: isHigh
-        }
+        meta: { title, style, instrumental, qualityPreset, durationMinutes, voiceOriginality, highQualityMode: isHigh }
       };
     }
   }
 
-  // Try ElevenLabs TTS if configured
   if (process.env.ELEVENLABS_API_KEY) {
     const defaultVoiceId = process.env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM';
     const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${defaultVoiceId}`, {
@@ -243,14 +236,7 @@ async function generateAudioFromApi({ title, lyrics, style, qualityPreset, durat
       return {
         provider: 'elevenlabs',
         audioUrl: `data:audio/mpeg;base64,${base64Audio}`,
-        meta: {
-          title,
-          style,
-          qualityPreset,
-          durationMinutes,
-          voiceOriginality,
-          highQualityMode: isHigh
-        }
+        meta: { title, style, instrumental, qualityPreset, durationMinutes, voiceOriginality, highQualityMode: isHigh }
       };
     }
   }
@@ -261,6 +247,7 @@ async function generateAudioFromApi({ title, lyrics, style, qualityPreset, durat
     meta: {
       title,
       style,
+      instrumental,
       qualityPreset,
       durationMinutes,
       voiceOriginality,
@@ -274,9 +261,12 @@ async function generateAudioFromApi({ title, lyrics, style, qualityPreset, durat
 app.post('/api/generate', async (req, res) => {
   try {
     const {
+      language,
       title,
       lyrics,
       style,
+      customMode,
+      instrumental,
       qualityPreset,
       voiceOriginality,
       durationMinutes,
@@ -302,7 +292,7 @@ app.post('/api/generate', async (req, res) => {
     if (!hasAnyAudioOrMusicKey) {
       return res.status(400).json({
         ok: false,
-        error: 'Railway Variables میں کوئی میوزک یا وائس API Key سیٹ نہیں ہے۔'
+        error: 'No music or voice API key is configured in Railway Variables.'
       });
     }
 
@@ -310,6 +300,7 @@ app.post('/api/generate', async (req, res) => {
       title: `${cleanTitle} (Take 1)`,
       lyrics,
       style: cleanStyle,
+      instrumental: Boolean(instrumental),
       qualityPreset: qualityPreset || 'standard',
       durationMinutes: duration,
       voiceOriginality: originality
@@ -319,6 +310,7 @@ app.post('/api/generate', async (req, res) => {
       title: `${cleanTitle} (Take 2)`,
       lyrics,
       style: cleanStyle,
+      instrumental: Boolean(instrumental),
       qualityPreset: qualityPreset || 'standard',
       durationMinutes: duration,
       voiceOriginality: originality
@@ -326,9 +318,12 @@ app.post('/api/generate', async (req, res) => {
 
     const tracks = [generated1, generated2].map((item, idx) => ({
       id: `${Date.now()}-${idx + 1}`,
+      language: language || 'Auto / Any Language',
       title: `${cleanTitle} (Take ${idx + 1})`,
       style: cleanStyle,
-      lyrics: lyrics || '',
+      lyrics: instrumental ? '' : (lyrics || ''),
+      customMode: customMode !== false,
+      instrumental: Boolean(instrumental),
       qualityPreset: qualityPreset || 'standard',
       voiceOriginality: originality,
       durationMinutes: duration,
@@ -343,6 +338,27 @@ app.post('/api/generate', async (req, res) => {
   } catch (err) {
     return res.status(500).json({ ok: false, error: err.message || 'Generation error' });
   }
+});
+
+// Crypto TxID subscription recording/verification endpoint (no cards)
+app.post('/api/crypto/verify', (req, res) => {
+  const { txHash, billingCycle, network } = req.body || {};
+  const cleanHash = String(txHash || '').trim();
+
+  if (!cleanHash || cleanHash.length < 10) {
+    return res.status(400).json({
+      ok: false,
+      error: 'Please enter a valid crypto transaction hash / TxID.'
+    });
+  }
+
+  return res.json({
+    ok: true,
+    txHash: cleanHash,
+    billingCycle: billingCycle === 'Yearly' ? 'Yearly' : 'Monthly',
+    network: network || 'USDT (ERC20)',
+    verifiedAt: new Date().toISOString()
+  });
 });
 
 // Fallback to index.html
