@@ -1,16 +1,17 @@
 {
   "name": "pk-ai-tool-music",
   "version": "1.0.0",
-  "description": "PK AI Tool Music - Suno-style AI Music, Vocal Cloning, Chat Assistant & Studio Workspace",
+  "description": "PK AI Tool Music — AI Music, Speech & Visual Studio",
+  "type": "module",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  },
   "engines": {
     "node": ">=18.0.0"
-  },
-  "dependencies": {
-    "dotenv": "^16.4.5",
-    "express": "^4.19.2"
   }
 }
