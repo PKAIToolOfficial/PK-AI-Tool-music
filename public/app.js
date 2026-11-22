@@ -4,6 +4,8 @@ const state = {
   tracks: [],
   currentTrack: null,
   config: null,
+  authMethod: 'Gmail',
+  userSession: null,
   subscription: {
     plan: 'Free',
     billingCycle: null,
@@ -15,8 +17,8 @@ const state = {
 
 const els = {
   brandName: document.getElementById('brand-name'),
-  navBtns: document.querySelectorAll('.nav-btn'),
-  views: document.querySelectorAll('.view-section'),
+  navBtns: document.querySelectorAll('.nav-pill'),
+  views: document.querySelectorAll('.view-panel'),
   viewTitle: document.getElementById('view-title'),
   viewSubtitle: document.getElementById('view-subtitle'),
   creditCount: document.getElementById('credit-count'),
@@ -25,6 +27,18 @@ const els = {
   resetDailyBtn: document.getElementById('reset-daily-btn'),
   claimAdCreditsBtn: document.getElementById('claim-ad-credits-btn'),
   adInfoText: document.getElementById('ad-info-text'),
+  lowCreditBanner: document.getElementById('low-credit-banner'),
+  bannerAdBtn: document.getElementById('banner-ad-btn'),
+  bannerPlansBtn: document.getElementById('banner-plans-btn'),
+
+  authStatusLabel: document.getElementById('auth-status-label'),
+  authTabs: document.querySelectorAll('.auth-tab'),
+  authIdLabel: document.getElementById('auth-id-label'),
+  authIdentifier: document.getElementById('auth-identifier'),
+  authCodeLabel: document.getElementById('auth-code-label'),
+  authCode: document.getElementById('auth-code'),
+  authVerifyBtn: document.getElementById('auth-verify-btn'),
+  authResultMsg: document.getElementById('auth-result-msg'),
 
   customModeToggle: document.getElementById('custom-mode-toggle'),
   instrumentalToggle: document.getElementById('instrumental-toggle'),
@@ -68,19 +82,23 @@ const els = {
 const viewMeta = {
   create: {
     title: 'Create Track Studio',
-    subtitle: 'Create songs and vocals in any world language'
+    subtitle: 'Generate songs, vocals, and instrumentals in any world language'
   },
   library: {
     title: 'My Library',
-    subtitle: 'All generated tracks in your studio workspace'
+    subtitle: 'All generated tracks in your studio library'
   },
   chat: {
     title: 'Chat Assistant',
     subtitle: 'Lyrics, hooks, and production style prompts in any language'
   },
   upgrade: {
-    title: 'Crypto Subscriptions',
+    title: 'Plans & Crypto',
     subtitle: 'Monthly & Yearly plans via direct Crypto wallet payment & TxID verification'
+  },
+  account: {
+    title: 'Login & Verification',
+    subtitle: 'Gmail, Phone OTP, and GitHub account verification'
   },
   railway: {
     title: 'Railway Keys',
@@ -95,6 +113,7 @@ function saveLocalState() {
       credits: state.credits,
       dailyLimit: state.dailyLimit,
       tracks: state.tracks,
+      userSession: state.userSession,
       subscription: state.subscription
     })
   );
@@ -108,6 +127,7 @@ function loadLocalState() {
     if (typeof parsed.credits === 'number') state.credits = parsed.credits;
     if (typeof parsed.dailyLimit === 'number') state.dailyLimit = parsed.dailyLimit;
     if (Array.isArray(parsed.tracks)) state.tracks = parsed.tracks;
+    if (parsed.userSession) state.userSession = parsed.userSession;
     if (parsed.subscription) state.subscription = { ...state.subscription, ...parsed.subscription };
   } catch (_) {}
 }
@@ -117,18 +137,30 @@ function getSelectedCost() {
   return Number(opt?.dataset?.cost || 10);
 }
 
+function renderAuthStatus() {
+  if (state.userSession?.verified) {
+    els.authStatusLabel.textContent = `${state.userSession.method}: ${state.userSession.identifier}`;
+  } else {
+    els.authStatusLabel.textContent = 'Guest Session · Not Verified';
+  }
+}
+
 function renderCredits() {
   els.creditCount.textContent = `${state.credits} / ${state.dailyLimit}`;
   const pct = Math.max(0, Math.min(100, (state.credits / Math.max(1, state.dailyLimit)) * 100));
   els.creditBar.style.width = `${pct}%`;
 
   const cost = getSelectedCost();
-  const qText = els.qualityPreset.value === 'high' ? 'High Studio Quality' : 'Standard Quality';
+  const qText = els.qualityPreset.value === 'high' ? 'High Quality' : 'Standard';
   const planBadge =
     state.subscription.plan === 'Pro Crypto'
       ? ` · ${state.subscription.billingCycle || 'Active'}`
       : ' · Free';
   els.modePill.textContent = `${qText} (${cost} Credits)${planBadge}`;
+
+  if (els.lowCreditBanner) {
+    els.lowCreditBanner.classList.toggle('hidden', state.credits >= cost);
+  }
 }
 
 function switchView(viewName) {
@@ -180,7 +212,7 @@ function deleteTrack(trackId) {
 
 function renderTrackList(container, list) {
   if (!list.length) {
-    container.innerHTML = `<div class="muted">No tracks generated yet.</div>`;
+    container.innerHTML = `<div class="hint-text">No tracks generated yet.</div>`;
     return;
   }
 
@@ -193,7 +225,7 @@ function renderTrackList(container, list) {
     const titleEl = document.createElement('strong');
     titleEl.textContent = track.title;
     const metaEl = document.createElement('div');
-    metaEl.className = 'muted';
+    metaEl.className = 'hint-text';
     const modeTag = track.instrumental ? 'Instrumental' : 'Vocal';
     metaEl.textContent = `${track.language || 'Any Language'} · ${modeTag} · ${track.style || 'Studio'} · ${track.durationMinutes || 2} min · Originality ${track.voiceOriginality ?? 85}% · ${track.provider || 'api'}`;
     info.appendChild(titleEl);
@@ -206,7 +238,7 @@ function renderTrackList(container, list) {
 
     const playBtn = document.createElement('button');
     playBtn.type = 'button';
-    playBtn.className = 'primary-btn small-btn';
+    playBtn.className = 'btn-green-sm';
     playBtn.textContent = track.audioUrl ? 'Play' : 'Select';
     playBtn.addEventListener('click', () => playTrack(track));
     actions.appendChild(playBtn);
@@ -214,7 +246,7 @@ function renderTrackList(container, list) {
     if (track.audioUrl) {
       const dlBtn = document.createElement('button');
       dlBtn.type = 'button';
-      dlBtn.className = 'secondary-btn small-btn';
+      dlBtn.className = 'btn-soft';
       dlBtn.textContent = 'Download';
       dlBtn.addEventListener('click', () => downloadTrack(track));
       actions.appendChild(dlBtn);
@@ -222,14 +254,14 @@ function renderTrackList(container, list) {
 
     const extBtn = document.createElement('button');
     extBtn.type = 'button';
-    extBtn.className = 'ghost-btn small-btn';
+    extBtn.className = 'btn-soft';
     extBtn.textContent = 'Extend';
     extBtn.addEventListener('click', () => extendTrack(track));
     actions.appendChild(extBtn);
 
     const delBtn = document.createElement('button');
     delBtn.type = 'button';
-    delBtn.className = 'ghost-btn small-btn';
+    delBtn.className = 'btn-soft';
     delBtn.textContent = 'Delete';
     delBtn.addEventListener('click', () => deleteTrack(track.id));
     actions.appendChild(delBtn);
@@ -307,7 +339,7 @@ async function loadConfig() {
     state.config = data;
     if (data.appName) {
       els.brandName.textContent = data.appName;
-      document.title = `${data.appName} — Global AI Music & Vocal Studio`;
+      document.title = `${data.appName} — Studio Dashboard`;
     }
     if (typeof data.dailyFreeCredits === 'number' && !localStorage.getItem('pk_ai_tool_music_state')) {
       state.dailyLimit = data.dailyFreeCredits;
@@ -321,12 +353,66 @@ async function loadConfig() {
   }
 }
 
-// Navigation
 els.navBtns.forEach((btn) => {
   btn.addEventListener('click', () => switchView(btn.dataset.view));
 });
 
-// Controls
+els.bannerAdBtn?.addEventListener('click', () => els.claimAdCreditsBtn?.click());
+els.bannerPlansBtn?.addEventListener('click', () => switchView('upgrade'));
+
+// Auth tabs
+els.authTabs.forEach((tab) => {
+  tab.addEventListener('click', () => {
+    els.authTabs.forEach((t) => t.classList.remove('active'));
+    tab.classList.add('active');
+    state.authMethod = tab.dataset.auth || 'Gmail';
+    if (state.authMethod === 'Phone') {
+      els.authIdLabel.textContent = 'Phone Number (with country code)';
+      els.authIdentifier.placeholder = '+92 300 0000000';
+      els.authCodeLabel.textContent = 'SMS OTP Code';
+      els.authCode.placeholder = 'Enter OTP code';
+    } else if (state.authMethod === 'GitHub') {
+      els.authIdLabel.textContent = 'GitHub Username or Email';
+      els.authIdentifier.placeholder = 'github-username';
+      els.authCodeLabel.textContent = 'Verification Code / Token';
+      els.authCode.placeholder = 'Enter verification code';
+    } else {
+      els.authIdLabel.textContent = 'Gmail Address';
+      els.authIdentifier.placeholder = 'you@gmail.com';
+      els.authCodeLabel.textContent = 'Email Verification Code';
+      els.authCode.placeholder = 'Enter 6-digit code';
+    }
+  });
+});
+
+els.authVerifyBtn?.addEventListener('click', async () => {
+  const identifier = els.authIdentifier.value.trim();
+  const codeOrToken = els.authCode.value.trim();
+  if (!identifier || codeOrToken.length < 4) {
+    els.authResultMsg.textContent = 'Enter a valid account identifier and verification code.';
+    return;
+  }
+
+  try {
+    const r = await fetch('/api/auth/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ method: state.authMethod, identifier, codeOrToken })
+    });
+    const data = await r.json();
+    if (!r.ok || !data.ok) {
+      els.authResultMsg.textContent = data.error || 'Verification failed.';
+      return;
+    }
+    state.userSession = data.user;
+    saveLocalState();
+    renderAuthStatus();
+    els.authResultMsg.textContent = `Verified via ${state.authMethod}: ${identifier}`;
+  } catch (err) {
+    els.authResultMsg.textContent = err.message || 'Verification error.';
+  }
+});
+
 els.instrumentalToggle?.addEventListener('change', () => {
   if (els.lyricsGroup) {
     els.lyricsGroup.style.display = els.instrumentalToggle.checked ? 'none' : 'block';
@@ -368,11 +454,11 @@ els.claimAdCreditsBtn.addEventListener('click', () => {
   els.adInfoText.textContent = '+10 reward credits added from ad slot.';
 });
 
-// Track Generation (2 tracks per request)
 els.generateBtn.addEventListener('click', async () => {
   const cost = getSelectedCost();
   if (state.credits < cost) {
-    els.generateStatus.textContent = `Insufficient credits (${cost} required). Use Rewarded Ad or Crypto Subscription.`;
+    els.generateStatus.textContent = `Insufficient credits (${cost} required). Watch an Ad or activate a Crypto Plan.`;
+    renderCredits();
     return;
   }
 
@@ -419,7 +505,6 @@ els.generateBtn.addEventListener('click', async () => {
   }
 });
 
-// Chat Assistant
 async function sendChatMessage() {
   const msg = els.chatInput.value.trim();
   if (!msg) return;
@@ -459,7 +544,6 @@ els.chatInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') sendChatMessage();
 });
 
-// Crypto Subscription Verification (Monthly / Yearly only, no cards)
 els.verifyCryptoBtn.addEventListener('click', async () => {
   const txHash = els.txHash.value.trim();
   const billingCycle = els.billingCycle?.value || 'Monthly';
@@ -506,7 +590,6 @@ els.verifyCryptoBtn.addEventListener('click', async () => {
   }
 });
 
-// Audio Player controls
 els.playToggleBtn.addEventListener('click', () => {
   if (!els.audioEl.src) return;
   if (els.audioEl.paused) els.audioEl.play().catch(() => {});
@@ -530,6 +613,7 @@ els.playerSeek.addEventListener('input', () => {
 });
 
 loadLocalState();
+renderAuthStatus();
 renderCredits();
 renderAllTracks();
 loadConfig();
