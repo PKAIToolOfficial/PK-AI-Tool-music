@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PK AI Tool Music — Global AI Music &amp; Vocal Studio</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo">PK</div>
+        <div>
+          <h1 id="brand-name">PK AI Tool Music</h1>
+          <span>Global Vocal &amp; Music Suite</span>
+        </div>
+      </div>
+
+      <nav class="nav-menu">
+        <button class="nav-btn active" data-view="create">Create</button>
+        <button class="nav-btn" data-view="library">Library</button>
+        <button class="nav-btn" data-view="chat">Chat Assistant</button>
+        <button class="nav-btn" data-view="upgrade">Plans &amp; Crypto</button>
+        <button class="nav-btn" data-view="railway">Railway Keys</button>
+      </nav>
+
+      <div class="credit-box">
+        <div class="credit-top">
+          <span>Daily Credits</span>
+          <strong id="credit-count">50 / 50</strong>
+        </div>
+        <div class="progress-track">
+          <div id="credit-bar" class="progress-fill" style="width: 100%;"></div>
+        </div>
+        <small class="muted">Generates 2 tracks per request</small>
+      </div>
+
+      <!-- Free Plan Ads Section -->
+      <div class="ad-box" id="free-ad-box">
+        <span class="ad-badge">AD · FREE PLAN</span>
+        <p id="ad-info-text">Sponsor &amp; Rewarded Ad Slot</p>
+        <button type="button" id="claim-ad-credits-btn" class="secondary-btn small-btn">
+          Watch Ad (+10 Credits)
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main class="main-content">
+      <header class="top-bar">
+        <div>
+          <h2 id="view-title">Create Track Studio</h2>
+          <p id="view-subtitle">Create songs and vocals in any world language</p>
+        </div>
+        <div class="top-actions">
+          <span class="pill" id="mode-pill">Standard Quality (10 Credits)</span>
+          <button type="button" id="reset-daily-btn" class="ghost-btn">Reset 50 Credits</button>
+        </div>
+      </header>
+
+      <!-- View 1: Create -->
+      <section id="view-create" class="view-section active">
+        <div class="grid-two">
+          <div class="panel">
+            <div class="field-group">
+              <label for="track-language">Vocal / Song Language (Any Language)</label>
+              <select id="track-language">
+                <option value="Auto / Any Language" selected>Auto Detect (Any World Language)</option>
+                <option value="English">English</option>
+                <option value="Hindi">Hindi</option>
+                <option value="Urdu">Urdu</option>
+                <option value="Punjabi">Punjabi</option>
+                <option value="Spanish">Spanish</option>
+                <option value="Arabic">Arabic</option>
+                <option value="French">French</option>
+                <option value="German">German</option>
+                <option value="Japanese">Japanese</option>
+                <option value="Korean">Korean</option>
+                <option value="Portuguese">Portuguese</option>
+                <option value="Turkish">Turkish</option>
+              </select>
+            </div>
+
+            <div class="field-group">
+              <label for="track-title">Song Title</label>
+              <input type="text" id="track-title" placeholder="Enter song title in any language" />
+            </div>
+
+            <div class="field-group">
+              <div class="label-row">
+                <label for="track-lyrics">Lyrics</label>
+                <button type="button" id="fill-sample-lyrics" class="link-btn">Fill Sample Lyrics</button>
+              </div>
+              <textarea id="track-lyrics" rows="7" placeholder="Write lyrics in any language or generate them in Chat Assistant..."></textarea>
+            </div>
+
+            <div class="field-group">
+              <label for="track-style">Music Style &amp; Production</label>
+              <input type="text" id="track-style" placeholder="e.g., natural vocals, studio mix, acoustic guitar, cinematic, lo-fi" />
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="field-group">
+              <label for="quality-preset">Quality Preset</label>
+              <select id="quality-preset">
+                <option value="standard" data-cost="10">Standard Quality (10 Credits · 2 Tracks)</option>
+                <option value="high" data-cost="20">High Studio Quality (20 Credits · 2 Tracks)</option>
+              </select>
+            </div>
+
+            <div class="field-group">
+              <label for="duration-select">Track / Recording Duration (1 to 20 Minutes)</label>
+              <select id="duration-select">
+                <option value="1">1 Minute</option>
+                <option value="2" selected>2 Minutes</option>
+                <option value="5">5 Minutes</option>
+                <option value="7">7 Minutes</option>
+                <option value="10">10 Minutes</option>
+                <option value="20">20 Minutes</option>
+              </select>
+            </div>
+
+            <div class="field-group">
+              <div class="label-row">
+                <label for="voice-originality">Voice Originality / Fidelity</label>
+                <strong id="voice-originality-val">85%</strong>
+              </div>
+              <input type="range" id="voice-originality" min="0" max="100" value="85" />
+              <small class="muted">Controls closeness to target vocal/reference tone</small>
+            </div>
+
+            <div class="field-group">
+              <label for="vocal-file">Upload Singer Voice / Reference Audio (1–20 Min)</label>
+              <input type="file" id="vocal-file" accept="audio/*" />
+              <small id="vocal-file-name" class="muted">No audio file selected</small>
+            </div>
+
+            <button type="button" id="generate-btn" class="primary-btn full-btn">
+              Create (Generate 2 Tracks)
+            </button>
+            <p id="generate-status" class="muted mt-12"></p>
+          </div>
+        </div>
+
+        <div class="panel mt-16">
+          <h3>Recent Tracks</h3>
+          <div id="recent-tracks" class="tracks-list mt-12"></div>
+        </div>
+      </section>
+
+      <!-- View 2: Library -->
+      <section id="view-library" class="view-section">
+        <div class="panel">
+          <h3>My Library</h3>
+          <p class="muted">All tracks generated in your studio session.</p>
+          <div id="library-tracks" class="tracks-list mt-16"></div>
+        </div>
+      </section>
+
+      <!-- View 3: Chat Assistant -->
+      <section id="view-chat" class="view-section">
+        <div class="panel chat-panel">
+          <h3>PK AI Tool Music Chat Assistant (Lyrics, Styles &amp; Ideas in Any Language)</h3>
+          <div id="chat-messages" class="chat-messages">
+            <div class="chat-msg bot">
+              Welcome! Tell me your song idea, mood, and preferred language, and I will craft lyrics, titles, and music style prompts.
+            </div>
+          </div>
+          <div class="chat-input-row">
+            <input type="text" id="chat-input" placeholder="Ask for lyrics, hooks, or music styles in any language..." />
+            <button type="button" id="chat-send-btn" class="primary-btn">Send</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- View 4: Plans & Crypto -->
+      <section id="view-upgrade" class="view-section">
+        <div class="grid-two">
+          <div class="panel">
+            <h3>Free Plan</h3>
+            <p class="muted">50 daily free credits, 2 tracks per generation, and ad-supported credits.</p>
+            <ul class="clean-list">
+              <li>50 Daily Credits</li>
+              <li>2 Tracks per Generation</li>
+              <li>Rewarded Ad Credits</li>
+            </ul>
+          </div>
+
+          <div class="panel">
+            <h3>Paid Plan (Crypto Payment)</h3>
+            <p class="muted">Send payment to your configured wallet network and submit the transaction hash:</p>
+            <div id="crypto-wallets-list" class="wallet-box">
+              <div class="muted">Loading wallets from Railway...</div>
+            </div>
+            <div class="field-group mt-12">
+              <label for="tx-hash">Transaction Hash / TxID</label>
+              <input type="text" id="tx-hash" placeholder="Paste TxID after sending crypto" />
+            </div>
+            <button type="button" id="submit-crypto-btn" class="primary-btn">Record Payment TxID</button>
+            <p id="crypto-status" class="muted mt-12"></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- View 5: Railway Keys Status -->
+      <section id="view-railway" class="view-section">
+        <div class="panel">
+          <h3>GitHub + Railway Environment Status</h3>
+          <p class="muted">
+            Source code is stored in GitHub while secret API keys are configured inside Railway <strong>Variables</strong>.
+          </p>
+          <div id="env-status-list" class="status-grid mt-16"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Bottom Audio Player -->
+  <footer class="player-bar">
+    <audio id="audio-element" controls style="display: none;"></audio>
+    <div class="player-info">
+      <strong id="player-title">No track selected</strong>
+      <span id="player-style" class="muted">Select a track to play</span>
+    </div>
+    <div class="player-controls">
+      <button type="button" id="play-toggle-btn" class="primary-btn small-btn">Play / Pause</button>
+      <input type="range" id="player-seek" min="0" max="100" value="0" />
+      <span id="player-time">00:00 / 02:00</span>
+    </div>
+  </footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>
