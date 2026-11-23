@@ -1,17 +1,18 @@
 {
-  "name": "pk-ai-tool-music",
-  "version": "1.0.0",
-  "description": "PK AI Tool Music — AI Music, Speech & Visual Studio",
+  "name": "pk-ai-tool",
+  "version": "2.0.0",
+  "private": true,
+  "description": "PK AI Tool — global creative AI dashboard for chat, image, voice, and payments",
   "type": "module",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "check": "node --check server.js && node --check db.js && node --check public/app.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.21.2"
   },
-  "engines": {
-    "node": ">=18.0.0"
-  }
+  "engines": { "node": ">=20.0.0" }
 }
