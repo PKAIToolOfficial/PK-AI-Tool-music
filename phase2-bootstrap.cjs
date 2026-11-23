@@ -10,7 +10,7 @@ function instrumentedExpress(...args) {
   app.use = function(...handlers) {
     const result = originalUse.apply(this, handlers);
     if (!middlewareInstalled && handlers.some((handler) => handler?.name === 'jsonParser')) {
-      // Security first; then add-on APIs before the application's SPA fallback.
+      // Mount additive routes after body parsing and before the existing route handlers.
       originalUse.call(this, require('./phase2-security.cjs'));
       originalUse.call(this, require('./phase3a-workspaces.cjs')());
       originalUse.call(this, inviteRedeemer);
@@ -31,8 +31,8 @@ instrumentedExpress.static = function(root, options) {
     if (req.method === 'GET' && (req.path === '/' || req.path === '/index.html')) {
       return fs.readFile(path.join(base, 'index.html'), 'utf8', (error, html) => {
         if (error) return next(error);
-        const scripts = ['<script src="/phase3a-loader.js" defer></script>', '<script src="/phase3b-loader.js" defer></script>'].join('');
-        const output = html.includes('/phase3a-loader.js') ? html : html.replace(/<\/body>/i, `${scripts}</body>`);
+        const assets = '<link rel="stylesheet" href="/phase3b-style.css"><script src="/phase3a-loader.js" defer></script><script src="/phase3b-loader.js" defer></script>';
+        const output = html.includes('/phase3b-loader.js') ? html : html.replace(/<\/body>/i, `${assets}</body>`);
         return res.type('html').send(output);
       });
     }
