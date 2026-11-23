@@ -1,15 +1,7 @@
 # PK AI Tool
 
-This is the Phase 3B implementation of creator profiles, public profile views, following, and referral tracking. The existing Railway environment variable names and application routes are preserved. No owner identity or infrastructure/provider information is included in public profile payloads.
+This Node.js/Express service deploys from the repository root on Railway with `npm start` and binds to the Railway-provided `PORT` on `0.0.0.0`. Railway health checks use `/healthz`. `npm run check` runs syntax checks for the server and Phase 2/3 extension modules.
 
-## Railway / persistence
+The startup bootstrap loads the security, paid workspace/team, and profile/referral middleware and injects their browser assets while leaving the existing main server routes intact. Configure `DATA_DIR` as a mounted persistent volume for profile and workspace JSON persistence. Existing sessions remain process-local, so run one Railway instance until session storage is moved to a shared database. For Supabase-backed profiles, set the already documented `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` variables, then run `supabase/phase3b-social.sql` in the Supabase SQL editor. No new required Railway variables were introduced.
 
-Run `npm install` after deploy so the server-only Supabase SDK is available. `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are optional existing deployment settings: if both exist, run `supabase/phase3b-social.sql` in the Supabase SQL editor and profile/network data uses those tables. Otherwise set the existing `DATA_DIR` to a mounted Railway volume; the fallback JSON store supports a single application instance only. Never expose the Supabase service-role key to browser code.
-
-The profile API is wired through the required Node bootstrap (`npm start`):
-- `GET/PUT /api/profile/me`
-- `GET /api/profile/:slug`
-- `POST/DELETE /api/follows/:slug`
-- `GET /api/referrals/me`, `POST /api/referrals/track`, and `POST /api/referrals/convert`
-
-Referral conversions are recorded only after the existing paid session reports confirmed paid status. No monetary or credit rewards are issued automatically. Configure `APP_URL` for referral links. Set `DATA_DIR` if using the local single-instance persistence path.
+External workspace destinations open as normal HTTPS links; they are not proxied or embedded. Team invitations are copyable, single-use, time-limited URLs; no outbound email service is assumed. Media provider keys alone do not enable music or FFmpeg pipelines in this repository; configure a supported media integration before advertising those workflows as active.

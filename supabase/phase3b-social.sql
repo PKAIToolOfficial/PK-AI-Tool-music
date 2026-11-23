@@ -1,4 +1,5 @@
 -- Phase 3B public creator profile, follow graph, referrals.
+create extension if not exists pgcrypto;
 create table if not exists public.app_profiles (
  session_token_hash text primary key,
  slug text unique not null,
