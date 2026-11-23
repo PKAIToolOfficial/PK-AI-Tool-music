@@ -1,19 +1,11 @@
 {
   "name": "pk-ai-tool",
-  "version": "2.1.0",
+  "version": "3.0.0",
   "private": true,
-  "description": "PK AI Tool — AI creative workspace with chat, image, voice, crypto checkout, and identity verification",
+  "description": "PK AI Tool — modular AI workspace with Supabase persistence and provider integrations",
   "type": "module",
   "main": "server.js",
-  "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js",
-    "check": "node --check server.js && node --check db.js && node --check public/app.js"
-  },
-  "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^4.21.2",
-    "stripe": "^17.7.0"
-  },
+  "scripts": { "start": "node server.js", "dev": "node --watch server.js", "check": "node --check server.js && node --check public/app.js" },
+  "dependencies": { "@aws-sdk/client-s3": "^3.800.0", "@fal-ai/client": "^1.2.0", "@supabase/supabase-js": "^2.49.0", "cors": "^2.8.5", "express": "^4.21.2", "stripe": "^17.7.0" },
   "engines": { "node": ">=20.0.0" }
 }
