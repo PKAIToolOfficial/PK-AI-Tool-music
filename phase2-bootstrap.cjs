@@ -10,11 +10,16 @@ function instrumentedExpress(...args) {
   app.use = function(...handlers) {
     const result = originalUse.apply(this, handlers);
     if (!middlewareInstalled && handlers.some((handler) => handler?.name === 'jsonParser')) {
-      // Security first, followed by additive workspace and creator-network routes.
+      // Mount additive middleware after JSON parsing, before existing routes.
       originalUse.call(this, require('./phase2-security.cjs'));
       originalUse.call(this, require('./phase3a-workspaces.cjs')());
-      originalUse.call(this, inviteRedeemer);
+      const workspaceModule = require('./phase3a-workspaces.cjs');
+      originalUse.call(this, function inviteRedeemer(req, res, next) {
+        if (req.path === '/api/workspaces/invites/redeem' && req.method === 'POST') return workspaceModule.redeemInvite(req, res);
+        return next();
+      });
       originalUse.call(this, require('./phase3b-social.cjs')());
+      originalUse.call(this, require('./chat-compat.cjs'));
       originalUse.call(this, healthAndResponseHardening);
       middlewareInstalled = true;
     }
@@ -40,34 +45,23 @@ instrumentedExpress.static = function(root, options) {
     return serve(req, res, next);
   };
 };
-
-const workspaceModule = require('./phase3a-workspaces.cjs');
-async function inviteRedeemer(req, res, next) {
-  if (req.path === '/api/workspaces/invites/redeem' && req.method === 'POST') return workspaceModule.redeemInvite(req, res);
-  next();
-}
 function healthAndResponseHardening(req, res, next) {
   if (req.path === '/healthz' && req.method === 'GET') return res.status(200).json({ ok: true });
   const send = res.json.bind(res);
   res.json = (body) => {
     if (req.path === '/api/health' && body && typeof body === 'object') {
       const session = body.session || {};
-      const configured = body.providers || {};
       body = {
         ok: Boolean(body.ok),
         service: 'PK AI Tool',
         timestamp: body.timestamp,
-        providers: {
-          chat: Boolean(configured.llm),
-          audio: Boolean(configured.speech),
-          media: Boolean(configured.musicOrVisual)
-        },
+        providers: { chat: Boolean(body.providers?.chat), media: Boolean(body.providers?.media), voice: Boolean(body.providers?.voice) },
         session: {
           token: session.token,
           credits: session.credits,
           maxCredits: session.maxCredits,
           plan: session.plan || 'Free',
-          paid: Boolean(session.paid || (session.plan && session.plan !== 'Free')),
+          paid: Boolean(session.paid),
           verified: Boolean(session.verified),
           kycStatus: session.kycStatus || 'not_started'
         },
@@ -76,6 +70,6 @@ function healthAndResponseHardening(req, res, next) {
     }
     return send(body);
   };
-  next();
+  return next();
 }
 require.cache[expressPath].exports = instrumentedExpress;
