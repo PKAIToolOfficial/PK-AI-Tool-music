@@ -1,8 +1,8 @@
 {
   "name": "pk-ai-tool",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
-  "description": "PK AI Tool — global creative AI dashboard for chat, image, voice, and payments",
+  "description": "PK AI Tool — AI creative workspace with chat, image, voice, crypto checkout, and identity verification",
   "type": "module",
   "main": "server.js",
   "scripts": {
@@ -12,7 +12,8 @@
   },
   "dependencies": {
     "cors": "^2.8.5",
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "stripe": "^17.7.0"
   },
   "engines": { "node": ">=20.0.0" }
 }
