@@ -1,0 +1,2 @@
+'use strict';
+const original = require('./package.json');
