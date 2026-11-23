@@ -1,13 +1,13 @@
 {
   "name": "pk-ai-tool",
-  "version": "3.2.0",
+  "version": "3.3.0",
   "type": "module",
   "private": true,
   "main": "server.js",
   "scripts": {
     "start": "node --require ./phase2-bootstrap.cjs server.js",
     "dev": "node --watch --require ./phase2-bootstrap.cjs server.js",
-    "check": "node --check server.js && node --check phase2-bootstrap.cjs && node --check phase3a-workspaces.cjs && node --check public/phase3.js && node --check public/phase3a.js"
+    "check": "node --check server.js && node --check phase2-bootstrap.cjs && node --check phase3a-workspaces.cjs && node --check phase3b-social.cjs && node --check public/phase3.js && node --check public/phase3a.js && node --check public/phase3b.js"
   },
   "dependencies": { "cors": "^2.8.5", "express": "^4.21.2" },
   "engines": { "node": ">=20.0.0" }
