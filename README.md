@@ -1,5 +1,3 @@
 # PK AI Tool
 
-Phase 3B adds server-validated profile editing, public profile views, follow/unfollow relationships, and unique referral tracking. Existing environment variable names and routes remain unchanged.
-
-Profiles and referral records persist under `DATA_DIR` when configured. Paid conversion is counted only after the existing session reports a paid/confirmed status. Referral rewards are represented as recorded conversion counts; no credits or monetary value are granted automatically without a separate verified billing integration. No owner or provider details are exposed.
+Phase 3B adds validated creator profile editing, public profile views, follow/unfollow, referral codes and signup/paid-conversion tracking. It preserves current environment-variable names. Configure `DATA_DIR` for single-instance file persistence; if `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are already used, run `supabase/phase3b-social.sql` and the feature uses those tables. Profile images and social links accept public HTTP(S) addresses only; internal/private network addresses are rejected. Referral conversions are counted, but no cash or credit rewards are issued automatically.

@@ -2,238 +2,32 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
-
-const profiles = new Map();
-const follows = new Map();
-const referrals = new Map();
-const signupReferrals = new Map();
-const dataDir = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : null;
-const file = dataDir ? path.join(dataDir, 'phase3b-social.json') : null;
-
-if (file) {
-  try {
-    const saved = JSON.parse(fs.readFileSync(file, 'utf8'));
-    for (const profile of saved.profiles || []) profiles.set(profile.tokenHash, profile);
-    for (const [key, value] of Object.entries(saved.follows || {})) follows.set(key, new Set(value));
-    for (const referral of saved.referrals || []) referrals.set(referral.tokenHash, referral);
-    for (const event of saved.signupReferrals || []) signupReferrals.set(event.id, event);
-  } catch (error) {
-    if (error.code !== 'ENOENT') console.error('Profile data could not be loaded.');
-  }
-}
-
-function persist() {
-  if (!file) return;
-  try {
-    fs.mkdirSync(dataDir, { recursive: true });
-    const temp = `${file}.${process.pid}.tmp`;
-    fs.writeFileSync(temp, JSON.stringify({
-      profiles: [...profiles.values()],
-      follows: Object.fromEntries([...follows.entries()].map(([key, value]) => [key, [...value]])),
-      referrals: [...referrals.values()],
-      signupReferrals: [...signupReferrals.values()]
-    }), { mode: 0o600 });
-    fs.renameSync(temp, file);
-  } catch (_) { console.error('Profile changes could not be persisted.'); }
-}
-
+const storeFile = process.env.DATA_DIR ? path.join(path.resolve(process.env.DATA_DIR), 'phase3b-social.json') : null;
 const digest = (value) => crypto.createHash('sha256').update(value).digest('hex');
-const tokenHashFrom = (req) => {
-  const token = String(req.get('x-session-token') || '').trim();
-  return /^[a-f0-9]{32,64}$/i.test(token) ? digest(token) : null;
-};
-
-async function currentSession(req) {
-  const token = String(req.get('x-session-token') || '').trim();
-  if (!/^\d?[a-f0-9]{32,64}$/i.test(token) && !/^[a-f0-9]{32,64}$/i.test(token)) return null;
-  try {
-    const origin = `http://127.0.0.1:${process.env.PORT || 3000}`;
-    const response = await fetch(`${origin}/api/health`, { headers: { 'x-session-token': token }, signal: AbortSignal.timeout(2500) });
-    if (!response.ok) return null;
-    const payload = await response.json();
-    if (!payload.session?.token) return null;
-    return { token, tokenHash: digest(token), paid: Boolean(payload.session.paid), verified: Boolean(payload.session.verified), plan: payload.session.plan };
-  } catch (_) { return null; }
-}
-
-function safeUrl(raw) {
-  try {
-    const url = new URL(String(raw).trim());
-    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) return null;
-    const host = url.hostname.toLowerCase();
-    if (host === 'localhost' || host === '0.0.0.0' || host === '::1' || host.endsWith('.localhost') || host.endsWith('.local') || /^127\./.test(host) || /^10\./.test(host) || /^192\.168\./.test(host) || /^169\.254\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host)) return null;
-    return url.href;
-  } catch (_) { return null; }
-}
-
-function validSlug(value) {
-  return typeof value === 'string' && /^[a-z0-9][a-z0-9_-]{2,29}$/.test(value.toLowerCase());
-}
-function profileSlug(profile) { return profile.slug || profile.tokenHash.slice(0, 12); }
-function isSlugTaken(slug, ownHash) {
-  for (const profile of profiles.values()) {
-    if (profile.tokenHash !== ownHash && profileSlug(profile) === slug) return true;
-  }
-  return false;
-}
-function publicProfile(profile) {
-  if (!profile) return null;
-  const followers = followersCount(profile.tokenHash);
-  const following = followingCount(profile.tokenHash);
-  return {
-    slug: profileSlug(profile),
-    displayName: profile.displayName,
-    bio: profile.bio || '',
-    avatarUrl: profile.avatarUrl || null,
-    coverUrl: profile.coverUrl || null,
-    socialLinks: profile.socialLinks || [],
-    verified: Boolean(profile.verified),
-    followers,
-    following
-  };
-}
-function followersCount(tokenHash) {
-  let count = 0;
-  for (const targets of follows.values()) if (targets.has(tokenHash)) count++;
-  return count;
-}
-function followingCount(tokenHash) { return (follows.get(tokenHash)?.size || 0); }
-function referralCode(tokenHash) {
-  let referral = referrals.get(tokenHash);
-  if (!referral) {
-    const code = base62(crypto.randomBytes(6)).replace(/[^A-Za-z0-9]/g, '').slice(0, 10).toUpperCase();
-    referral = { tokenHash, code: code || crypto.randomBytes(5).toString('hex').toUpperCase(), signups: 0, conversions: 0, createdAt: new Date().toISOString() };
-    referrals.set(tokenHash, referral);
-    persist();
-  }
-  return referral;
-}
-function base62(buffer) {
-  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let value = Buffer.from(buffer).readBigUInt64BE();
-  let output = '';
-  while (value > 0n) { output = alphabet[Number(value % 62n)] + output; value /= 62n; }
-  return output;
-}
-
-module.exports = function socialRoutes() {
-  return async function handleSocialRoutes(req, res, next) {
-    if (!req.path.startsWith('/api/profile') && !req.path.startsWith('/api/follows') && !req.path.startsWith('/api/referrals')) return next();
-
-    try {
-      if (req.path === '/api/profile/me' && req.method === 'GET') {
-        const session = await currentSession(req);
-        if (!session) return res.status(401).json({ error: 'Session required.' });
-        let profile = profiles.get(session.tokenHash);
-        if (!profile) {
-          profile = { tokenHash: session.tokenHash, slug: session.tokenHash.slice(0, 12), displayName: 'Creator', bio: '', avatarUrl: null, coverUrl: null, socialLinks: [], verified: session.verified || session.paid, createdAt: new Date().toISOString() };
-          profiles.set(session.tokenHash, profile); persist();
-        }
-        profile.verified = Boolean(session.verified || session.paid);
-        persist();
-        return res.json({ ok: true, profile: { ...publicProfile(profile), referralCode: referralCode(session.tokenHash).code } });
-      }
-
-      if (req.path === '/api/profile/me' && req.method === 'PUT') {
-        const session = await currentSession(req);
-        if (!session) return res.status(401).json({ error: 'Session required.' });
-        const displayName = String(req.body?.displayName || '').trim();
-        const bio = String(req.body?.bio || '').trim();
-        const slug = String(req.body?.slug || '').trim().toLowerCase();
-        const avatarUrl = req.body?.avatarUrl ? safeUrl(req.body.avatarUrl) : null;
-        const coverUrl = req.body?.coverUrl ? safeUrl(req.body.coverUrl) : null;
-        if (!validSlug(slug)) return res.status(400).json({ error: 'Profile address must be 3–30 characters using letters, numbers, underscores or hyphens.' });
-        if (displayName.length < 1 || displayName.length > 50) return res.status(400).json({ error: 'Display name must be 1–50 characters.' });
-        if (bio.length > 300) return res.status(400).json({ error: 'Bio must be 300 characters or fewer.' });
-        if (req.body?.avatarUrl && !avatarUrl) return res.status(400).json({ error: 'Avatar address is not a valid public web address.' });
-        if (req.body?.coverUrl && !coverUrl) return res.status(400).json({ error: 'Cover address is not a valid public web address.' });
-        if (isSlugTaken(slug, session.tokenHash)) return res.status(409).json({ error: 'That profile address is already in use.' });
-
-        const rawLinks = Array.isArray(req.body?.socialLinks) ? req.body.socialLinks : [];
-        if (rawLinks.length > 12) return res.status(400).json({ error: 'No more than 12 social links are allowed.' });
-        const socialLinks = [];
-        for (const link of rawLinks) {
-          const label = String(link?.label || '').trim();
-          const url = safeUrl(link?.url);
-          if (!label || label.length > 40) return res.status(400).json({ error: 'A social link label is invalid.' });
-          if (!url) return res.status(400).json({ error: 'A social link is not a valid public web address.' });
-          socialLinks.push({ label, url });
-        }
-
-        let profile = profiles.get(session.tokenHash);
-        profile = { ...(profile || { tokenHash: session.tokenHash, createdAt: new Date().toISOString() }), slug, displayName, bio, avatarUrl, coverUrl, socialLinks, verified: Boolean(session.verified || session.paid), updatedAt: new Date().toISOString() };
-        profiles.set(session.tokenHash, profile); persist();
-        return res.json({ ok: true, profile: publicProfile(profile) });
-      }
-
-      if (req.path.startsWith('/api/profile/') && req.method === 'GET') {
-        const slug = decodeURIComponent(req.path.split('/').pop()).toLowerCase();
-        let profile = null;
-        for (const item of profiles.values()) if (profileSlug(item) === slug) { profile = item; break; }
-        if (!profile) return res.status(404).json({ error: 'Creator profile not found.' });
-        const viewer = await currentSession(req);
-        const result = publicProfile(profile);
-        result.viewerFollowing = Boolean(viewer && (follows.get(viewer.tokenHash)?.has(profile.tokenHash)));
-        return res.json({ ok: true, profile: result });
-      }
-
-      if (req.path.startsWith('/api/follows/') && ['POST', 'DELETE'].includes(req.method)) {
-        const slug = decodeURIComponent(req.path.split('/').pop()).toLowerCase();
-        let target = null;
-        for (const item of profiles.values()) if (profileSlug(item) === slug) { target = item; break; }
-        if (!target) return res.status(404).json({ error: 'Creator profile not found.' });
-        const session = await currentSession(req);
-        if (!session) return res.status(401).json({ error: 'Session required.' });
-        if (session.tokenHash === target.tokenHash) return res.status(400).json({ error: 'You cannot follow your own profile.' });
-        const set = follows.get(session.tokenHash) || new Set();
-        if (req.method === 'POST') set.add(target.tokenHash); else set.delete(target.tokenHash);
-        follows.set(session.tokenHash, set); persist();
-        return res.json({ ok: true, following: req.method === 'POST', followers: followersCount(target.tokenHash), following: followingCount(target.tokenHash) });
-      }
-
-      if (req.path === '/api/referrals/me' && req.method === 'GET') {
-        const session = await currentSession(req);
-        if (!session) return res.status(401).json({ error: 'Session required.' });
-        const referral = referralCode(session.tokenHash);
-        const baseUrl = process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
-        const events = [...signupReferrals.values()].filter((event) => event.referrerHash === session.tokenHash);
-        return res.json({ ok: true, code: referral.code, link: `${baseUrl}/?ref=${encodeURIComponent(referral.code)}`, signups: referral.signups, conversions: referral.conversions, events: events.map(({ createdAt, convertedAt }) => ({ createdAt, convertedAt: convertedAt || null })) });
-      }
-
-      if (req.path === '/api/referrals/track' && req.method === 'POST') {
-        const code = String(req.body?.code || '').trim().toUpperCase();
-        if (!code || code.length > 32) return res.status(400).json({ error: 'Invalid referral code.' });
-        let referrer = null;
-        for (const referral of referrals.values()) if (referral.code === code) { referrer = referral; break; }
-        if (!referrer) return res.status(404).json({ error: 'Referral code not found.' });
-        const session = await currentSession(req);
-        if (!session) return res.status(401).json({ error: 'Session required.' });
-        if (session.tokenHash === referrer.tokenHash) return res.status(400).json({ error: 'You cannot refer your own account.' });
-        const id = session.tokenHash;
-        if (!signupReferrals.has(id)) {
-          signupReferrals.set(id, { id, referrerHash: referrer.tokenHash, createdAt: new Date().toISOString(), convertedAt: null });
-          referrer.signups += 1;
-          persist();
-        }
-        return res.json({ ok: true, tracked: true });
-      }
-
-      if (req.path === '/api/referrals/convert' && req.method === 'POST') {
-        const session = await currentSession(req);
-        if (!session) return res.status(401).json({ error: 'Session required.' });
-        if (!session.paid) return res.status(400).json({ error: 'Paid conversion has not been verified.' });
-        const event = signupReferrals.get(session.tokenHash);
-        if (!event || event.convertedAt) return res.json({ ok: true, converted: false });
-        event.convertedAt = new Date().toISOString();
-        const referrer = referrals.get(event.referrerHash);
-        if (referrer) referrer.conversions += 1;
-        persist();
-        return res.json({ ok: true, converted: true });
-      }
-
-      return res.status(404).json({ error: 'Route not found.' });
-    } catch (_) {
-      return res.status(500).json({ error: 'The request could not be completed.' });
-    }
-  };
-};
+const schema = `create table if not exists public.app_profiles (session_token_hash text primary key, slug text unique not null, display_name text not null, bio text not null default '', avatar_url text, cover_url text, social_links jsonb not null default '[]'::jsonb, verified boolean not null default false, created_at timestamptz not null default now(), updated_at timestamptz not null default now());
+create table if not exists public.app_follows (follower_hash text not null, followed_hash text not null, created_at timestamptz not null default now(), primary key (follower_hash, followed_hash), check (follower_hash <> followed_hash));
+create table if not exists public.app_referrals (referrer_hash text primary key, code text unique not null, signups integer not null default 0, conversions integer not null default 0, created_at timestamptz not null default now());
+create table if not exists public.app_referral_events (referred_hash text primary key, referrer_hash text not null, created_at timestamptz not null default now(), converted_at timestamptz);
+`;
+function makeCode(){return crypto.randomBytes(8).toString('hex').slice(0,10).toUpperCase();}
+function slugFromSession(hash){return hash.slice(0,12);}
+function safeUrl(raw){try{const url=new URL(String(raw).trim());if(!['http:','https:'].includes(url.protocol)||url.username||url.password)return null;const host=url.hostname.toLowerCase();if(host==='localhost'||host==='0.0.0.0'||host==='::1'||host.endsWith('.localhost')||host.endsWith('.local')||/^127\./.test(host)||/^10\./.test(host)||/^192\.168\./.test(host)||/^169\.254\./.test(host)||/^172\.(1[6-9]|2\d|3[01])\./.test(host))return null;return url.href;}catch(_){return null;}}
+async function session(req){const token=String(req.get('x-session-token')||'').trim();if(!/^[a-f0-9]{32,64}$/i.test(token))return null;try{const response=await fetch(`http://127.0.0.1:${process.env.PORT||3000}/api/health`,{headers:{'x-session-token':token},signal:AbortSignal.timeout(2500)});if(!response.ok)return null;const data=await response.json();return data.session?.token?{tokenHash:digest(token),paid:Boolean(data.session.paid),verified:Boolean(data.session.verified)}:null;}catch(_){return null;}}
+let memory;try{memory=storeFile?JSON.parse(fs.readFileSync(storeFile,'utf8')):{};}catch(_){memory={};}memory.profiles=memory.profiles||[];memory.follows=memory.follows||[];memory.referrals=memory.referrals||[];memory.events=memory.events||[];
+function save(){if(!storeFile)return;try{fs.mkdirSync(path.dirname(storeFile),{recursive:true});const tmp=`${storeFile}.${process.pid}.tmp`;fs.writeFileSync(tmp,JSON.stringify(memory),{mode:0o600});fs.renameSync(tmp,storeFile);}catch(_){console.error('Profile data persistence failed.');}}
+async function dbClient(){const url=process.env.SUPABASE_URL;const key=process.env.SUPABASE_SERVICE_ROLE_KEY;if(!url||!key)return null;const{createClient}=await import('@supabase/supabase-js');return createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});}
+const countFollowers=(hash)=>memory.follows.filter((row)=>row.followed_hash===hash).length;const countFollowing=(hash)=>memory.follows.filter((row)=>row.follower_hash===hash).length;
+function notFound(res){return res.status(404).json({error:'Profile not found.'});}
+module.exports=function phase3b(req,res,next){if(!req.path.startsWith('/api/profile')&&!req.path.startsWith('/api/follows')&&!req.path.startsWith('/api/referrals'))return next();(async()=>{const user=await session(req);if(!user)return res.status(401).json({error:'Session required.'});const db=await dbClient();
+const count=async(table,column,value)=>{if(db){const result=await db.from(table).select('follower_hash',{count:'exact',head:true}).eq(column,value);if(!result.error)return result.count||0;}return table==='app_follows'?(column==='followed_hash'?countFollowers(value):countFollowing(value)):0;};
+const profileShape=async(row,viewerHash)=>({slug:row.slug,displayName:row.display_name,bio:row.bio||'',avatarUrl:row.avatar_url||null,coverUrl:row.cover_url||null,socialLinks:row.social_links||[],verified:Boolean(row.verified),followers:await count('app_follows','followed_hash',row.session_token_hash),following:await count('app_follows','follower_hash',row.session_token_hash),viewerFollowing:viewerHash?memory.follows.some((f)=>f.follower_hash===viewerHash&&f.followed_hash===row.session_token_hash):false});
+const ensureProfile=async()=>{let row;if(db){const q=await db.from('app_profiles').select('*').eq('session_token_hash',user.tokenHash).maybeSingle();if(!q.error)row=q.data;}else row=memory.profiles.find((item)=>item.session_token_hash===user.tokenHash);if(row)return row;row={session_token_hash:user.tokenHash,slug:slugFromSession(user.tokenHash),display_name:'Creator',bio:'',avatar_url:null,cover_url:null,social_links:[],verified:user.paid||user.verified};if(db){const q=await db.from('app_profiles').insert(row).select('*').single();if(q.error)throw q.error;row=q.data;}else{memory.profiles.push(row);save();}return row;};
+const getReferral=async()=>{let row;if(db){const q=await db.from('app_referrals').select('*').eq('referrer_hash',user.tokenHash).maybeSingle();if(q.error)throw q.error;row=q.data;}else row=memory.referrals.find((item)=>item.referrer_hash===user.tokenHash);if(row)return row;row={referrer_hash:user.tokenHash,code:makeCode(),signups:0,conversions:0};if(db){const q=await db.from('app_referrals').insert(row).select('*').single();if(q.error)throw q.error;row=q.data;}else{memory.referrals.push(row);save();}return row;};
+if(req.path==='/api/profile/me'&&req.method==='GET'){const row=await ensureProfile();const referral=await getReferral();return res.json({ok:true,profile:{...(await profileShape(row,user.tokenHash)),referralCode:referral.code}});}
+if(req.path==='/api/profile/me'&&req.method==='PUT'){const displayName=String(req.body?.displayName||'').trim(),bio=String(req.body?.bio||'').trim(),slug=String(req.body?.slug||'').trim().toLowerCase();if(!/^[a-z0-9][a-z0-9_-]{2,29}$/.test(slug))return res.status(400).json({error:'Profile address must be 3–30 valid characters.'});if(!displayName||displayName.length>50||bio.length>300)return res.status(400).json({error:'Display name or bio is invalid.'});const avatar=req.body?.avatarUrl?safeUrl(req.body.avatarUrl):null,cover=req.body?.coverUrl?safeUrl(req.body.coverUrl):null;if((req.body?.avatarUrl&&!avatar)||(req.body?.coverUrl&&!cover))return res.status(400).json({error:'Image URL must be a public HTTP or HTTPS address.'});const links=Array.isArray(req.body?.socialLinks)?req.body.socialLinks:[];if(links.length>12)return res.status(400).json({error:'No more than 12 social links are allowed.'});const social=[];for(const item of links){const label=String(item?.label||'').trim(),url=safeUrl(item?.url);if(!label||label.length>40||!url)return res.status(400).json({error:'A social link is invalid.'});social.push({label,url});}if(db){const exists=await db.from('app_profiles').select('session_token_hash').eq('slug',slug).neq('session_token_hash',user.tokenHash).maybeSingle();if(exists.error)throw exists.error;if(exists.data)return res.status(409).json({error:'That profile address is already used.'});const q=await db.from('app_profiles').upsert({session_token_hash:user.tokenHash,slug,display_name:displayName,bio,avatar_url:avatar,cover_url:cover,social_links:social,verified:user.paid||user.verified,updated_at:new Date().toISOString()}).select('*').single();if(q.error)throw q.error;return res.json({ok:true,profile:await profileShape(q.data,user.tokenHash)});}let row=memory.profiles.find((item)=>item.session_token_hash===user.tokenHash);if(memory.profiles.some((item)=>item.slug===slug&&item.session_token_hash!==user.tokenHash))return res.status(409).json({error:'That profile address is already used.'});row={...(row||{}),session_token_hash:user.tokenHash,slug,display_name:displayName,bio,avatar_url:avatar,cover_url:cover,social_links:social,verified:user.paid||user.verified};const index=memory.profiles.findIndex((item)=>item.session_token_hash===user.tokenHash);if(index<0)memory.profiles.push(row);else memory.profiles[index]=row;save();return res.json({ok:true,profile:await profileShape(row,user.tokenHash)});}
+if(req.path.startsWith('/api/profile/')&&req.method==='GET'){const slug=decodeURIComponent(req.path.split('/').pop()).toLowerCase();let row;if(db){const q=await db.from('app_profiles').select('*').eq('slug',slug).maybeSingle();if(q.error)throw q.error;row=q.data;}else row=memory.profiles.find((item)=>item.slug===slug);if(!row)return notFound(res);return res.json({ok:true,profile:await profileShape(row,user.tokenHash)});}
+if(req.path.startsWith('/api/follows/')&&['POST','DELETE'].includes(req.method)){const slug=decodeURIComponent(req.path.split('/').pop()).toLowerCase();let target;if(db){const q=await db.from('app_profiles').select('session_token_hash').eq('slug',slug).maybeSingle();if(q.error)throw q.error;target=q.data;}else target=memory.profiles.find((item)=>item.slug===slug);if(!target)return notFound(res);if(target.session_token_hash===user.tokenHash)return res.status(400).json({error:'You cannot follow your own profile.'});if(db){if(req.method==='POST'){const q=await db.from('app_follows').upsert({follower_hash:user.tokenHash,followed_hash:target.session_token_hash},{onConflict:'follower_hash,followed_hash',ignoreDuplicates:true});if(q.error)throw q.error;}else{const q=await db.from('app_follows').delete().eq('follower_hash',user.tokenHash).eq('followed_hash',target.session_token_hash);if(q.error)throw q.error;}}else{const existing=memory.follows.some((item)=>item.follower_hash===user.tokenHash&&item.followed_hash===target.session_token_hash);if(req.method==='POST'&&!existing)memory.follows.push({follower_hash:user.tokenHash,followed_hash:target.session_token_hash});if(req.method==='DELETE')memory.follows=memory.follows.filter((item)=>!(item.follower_hash===user.tokenHash&&item.followed_hash===target.session_token_hash));save();}const [followers,following]=await Promise.all([count('app_follows','followed_hash',target.session_token_hash),count('app_follows','follower_hash',target.session_token_hash)]);return res.json({ok:true,following:req.method==='POST',followers,followingCount:following});}
+if(req.path==='/api/referrals/me'&&req.method==='GET'){const referral=await getReferral();const base=process.env.APP_URL||`${req.protocol}://${req.get('host')}`;let events;if(db){const q=await db.from('app_referral_events').select('created_at,converted_at').eq('referrer_hash',user.tokenHash);if(q.error)throw q.error;events=q.data||[];}else events=memory.events.filter((item)=>item.referrer_hash===user.tokenHash);return res.json({ok:true,code:referral.code,link:`${base}/?ref=${encodeURIComponent(referral.code)}`,signups:referral.signups,conversions:referral.conversions,events:events.map((item)=>({createdAt:item.created_at||item.createdAt,convertedAt:item.converted_at||item.convertedAt||null}))});}
+if(req.path==='/api/referrals/track'&&req.method==='POST'){const code=String(req.body?.code||'').trim().toUpperCase();if(!/^[A-Z0-9]{6,20}$/.test(code))return res.status(400).json({error:'Referral code is invalid.'});let referrer;if(db){const q=await db.from('app_referrals').select('*').eq('code',code).maybeSingle();if(q.error)throw q.error;referrer=q.data;}else referrer=memory.referrals.find((item)=>item.code===code);if(!referrer)return res.status(404).json({error:'Referral code not found.'});if(referrer.referrer_hash===user.tokenHash)return res.status(400).json({error:'You cannot refer your own account.'});if(db){const q=await db.from('app_referral_events').upsert({referred_hash:user.tokenHash,referrer_hash:referrer.referrer_hash},{onConflict:'referred_hash',ignoreDuplicates:true});if(q.error)throw q.error;}else if(!memory.events.some((item)=>item.referred_hash===user.tokenHash)){memory.events.push({referred_hash:user.tokenHash,referrer_hash:referrer.referrer_hash,created_at:new Date().toISOString(),converted_at:null});referrer.signups++;save();}return res.json({ok:true,tracked:true});}
+if(req.path==='/api/referrals/convert'&&req.method==='POST'){if(!user.paid)return res.status(400).json({error:'Paid conversion has not been verified.'});if(db){const q=await db.from('app_referral_events').select('*').eq('referred_hash',user.tokenHash).maybeSingle();if(q.error)throw q.error;if(!q.data||q.data.converted_at)return res.json({ok:true,converted:false});const update=await db.from('app_referral_events').update({converted_at:new Date().toISOString()}).eq('referred_hash',user.tokenHash).is('converted_at',null);if(update.error)throw update.error;const referral=await db.from('app_referrals').select('conversions').eq('referrer_hash',q.data.referrer_hash).single();if(!referral.error)await db.from('app_referrals').update({conversions:referral.data.conversions+1}).eq('referrer_hash',q.data.referrer_hash);return res.json({ok:true,converted:true});}const event=memory.events.find((item)=>item.referred_hash===user.tokenHash);if(!event||event.converted_at)return res.json({ok:true,converted:false});event.converted_at=new Date().toISOString();const referral=memory.referrals.find((item)=>item.referrer_hash===event.referrer_hash);if(referral)referral.conversions++;save();return res.json({ok:true,converted:true});}
+return res.status(404).json({error:'Route not found.'});};
