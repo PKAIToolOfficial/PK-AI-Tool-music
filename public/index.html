@@ -1,31 +1,13 @@
 <!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#101114"><title>PK AI Tool</title>
-  <link rel="stylesheet" href="/style.css">
-</head>
+<html lang="en" dir="ltr">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#101114"><title>PK AI Tool</title><link rel="stylesheet" href="/style.css"></head>
 <body>
-  <div class="app-shell">
-    <aside class="sidebar">
-      <div class="brand"><span class="brand-mark">PK</span><span><b>PK AI Tool</b><span class="verified" aria-label="Verified platform">◆</span></span></div>
-      <nav>
-        <button class="nav-item active" data-view="chat">AI Assistant</button>
-        <button class="nav-item" data-view="studio">Creative Studio</button>
-        <button class="nav-item" data-view="plans">Plans</button>
-        <button class="nav-item" data-view="security">Security</button>
-        <button class="nav-item" data-view="account">Account</button>
-      </nav>
-    </aside>
-    <main>
-      <header class="topbar"><h1 id="title">AI Assistant</h1><div id="planBadge" class="plan-badge">Free</div></header>
-      <section id="chat" class="view active"><div id="chatLog" class="chat-log"><div class="assistant">Welcome to your private workspace.</div></div><form id="chatForm" class="composer"><input id="chatPrompt" maxlength="12000" required placeholder="Ask PK AI Tool…"><button>Send</button></form></section>
-      <section id="studio" class="view"><div class="card"><h2>Creative Studio</h2><p>Premium creative workflows are available with an active paid plan.</p><button id="premiumStatus" class="primary">Check plan access</button></div></section>
-      <section id="plans" class="view"><div class="card"><h2>Paid plans</h2><p id="planStatus">Upgrade from the crypto payment section to unlock premium features.</p><label>Network<select id="network"><option>USDT (ERC20)</option><option>TRX (TRC20)</option><option>BTC</option><option>ETH (ERC20)</option><option>BNB (BEP20)</option></select></label><label>Transaction reference<input id="txid" maxlength="200" placeholder="Paste transaction reference"></label><button id="submitPayment" class="primary">Submit for verification</button><div id="wallets" class="wallets"></div></section>
-      <section id="security" class="view"><div class="card"><h2>Security</h2><p>Identity verification and account protection are managed securely through approved verification services.</p><button id="kycBtn" class="primary">Check verification status</button><p id="kycStatus"></p></div></section>
-      <section id="account" class="view"><div class="card"><h2>Account <span class="verified">◆</span></h2><p id="accountStatus"></p><p>Provider and owner details are kept private.</p></div></section>
-    </main>
-  </div>
-  <script src="/app.js" defer></script>
-</body>
-</html>
+<div class="shell"><aside><div class="brand">PK AI Tool <span class="gold">◆</span></div><nav><button data-view="chat" class="active">Assistant</button><button data-view="studio">Creative Studio</button><button data-view="plans">Plans</button><button data-view="security">Security & Verification</button><button data-view="account">Account</button></nav></aside>
+<main><header><h1 id="heading">Assistant</h1><div class="top-actions"><label>Language <select id="language"><option value="en">English</option><option value="es">Español</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="pt">Português</option><option value="ar">العربية</option><option value="ur">اردو</option><option value="hi">हिन्दी</option><option value="zh">中文</option><option value="ja">日本語</option></select></label><span id="plan">Free</span></div></header>
+<section id="chat" class="view active"><div id="chatLog" class="chatLog"><div class="bubble">Welcome to your workspace.</div></div><form id="chatForm"><input id="prompt" maxlength="12000" required placeholder="Ask PK AI Tool"><button>Send</button></form></section>
+<section id="studio" class="view"><div class="card"><h2>Creative Studio</h2><p>Premium creative actions require an active paid plan.</p></div></section>
+<section id="plans" class="view"><div class="card"><h2>Plans</h2><label>Network<select id="network"><option>USDT (ERC20)</option><option>TRX (TRC20)</option><option>BTC</option><option>ETH (ERC20)</option><option>BNB (BEP20)</option></select></label><label>Transaction reference<input id="txid" maxlength="200"></label><button id="paymentSubmit">Submit for verification</button><div id="wallets"></div><p id="planStatus"></p></div></section>
+<section id="security" class="view"><div class="card"><h2>Security & Verification <span class="gold">◆</span></h2><h3>International identity</h3><form id="kycForm"><label>Country <input id="kycCountry" minlength="2" maxlength="2" pattern="[A-Za-z]{2}" placeholder="US / GB / PK" required></label><label>Document type<select id="kycDocument"><option value="passport">Passport</option><option value="national_id">National identity card</option><option value="residence_permit">Residence permit</option><option value="driving_license">Driving licence</option></select></label><button>Start verification</button></form><p id="kycStatus" class="status"></p><hr><h3>Authenticator</h3><button id="totpSetup">Set up authenticator</button><div id="totpProvision"></div><label>6-digit code<input id="totpCode" inputmode="numeric" maxlength="6" pattern="[0-9]{6}"></label><button id="totpVerify">Verify authenticator</button><hr><h3>Email verification</h3><label>Email<input id="emailAddress" type="email"></label><button id="emailSetup">Send code</button><label>Code<input id="emailCode" inputmode="numeric" maxlength="6"></label><button id="emailVerify">Verify email</button><hr><h3>Mobile verification</h3><label>International phone<input id="phoneNumber" placeholder="+10000000000"></label><button id="mobileSetup">Send code</button><label>Code<input id="mobileCode" inputmode="numeric" maxlength="6"></label><button id="mobileVerify">Verify mobile</button><hr><h3>Device verification</h3><button id="biometricChallenge">Create secure device check</button><button id="biometricVerify" disabled>Complete verification</button><p id="securityStatus" class="status"></p></div></section>
+<section id="account" class="view"><div class="card"><h2>Account <span class="gold">◆</span></h2><p id="accountStatus"></p></div></section></main></div>
+<script src="/phase3.js" defer></script>
+</body></html>

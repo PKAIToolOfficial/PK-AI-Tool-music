@@ -1,10 +1,5 @@
 # PK AI Tool
 
-Production Node.js/Express application on Railway.
+The application preserves all existing environment variable names and existing API routes. This update adds structured global verification, authenticator setup, email/mobile hooks, and device verification hooks. No provider or owner identity is exposed.
 
-- Set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` to enable the database-backed configuration.
-- Run `supabase/schema.sql` once in Supabase SQL Editor.
-- The app uses only Railway's `PORT` and existing provider environment variables.
-- Premium features require a paid session.
-- No provider or owner information is returned by public APIs or rendered by the default UI.
-- Use AdSense for web monetization; AdMob is not used on web pages.
+Configure Stripe Identity using the existing `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `APP_URL`, and `KYC_RETURN_URL` variables. Configure optional email/mobile/device integrations with the names listed in `.env.example`.
