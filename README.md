@@ -1,5 +1,5 @@
 # PK AI Tool
 
-The application preserves all existing environment variable names and existing API routes. This update adds structured global verification, authenticator setup, email/mobile hooks, and device verification hooks. No provider or owner identity is exposed.
+Phase 3A adds paid workspace shortcut organization and role-based team collaboration. All existing Railway environment variable names and API routes remain unchanged. Workspace shortcuts are launched as external secure tabs (third-party sites can block embedded views); no site is proxied or framed.
 
-Configure Stripe Identity using the existing `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `APP_URL`, and `KYC_RETURN_URL` variables. Configure optional email/mobile/device integrations with the names listed in `.env.example`.
+Workspace data is persisted under `DATA_DIR` when configured. Because the current runtime uses process-local sessions and JSON workspace storage, use one Railway instance and an attached persistent volume; this implementation is not horizontally scalable. Team invitations return copyable, single-use, time-limited invite links; no email is sent. Paid workspace endpoints verify the current paid session through the existing health session, and all membership and role checks run server-side.
